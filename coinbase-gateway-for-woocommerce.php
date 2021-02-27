@@ -82,11 +82,11 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                  */
                 public function constants()
                 {
-                    $this->define('VERSION', '1.0');
-                    $this->define('PREFIX', 'cgfwc_');
-                    $this->define('TEXT_DOMAIN', 'starter-plugin');
-                    $this->define('PLUGIN_DIR_PATH', plugin_dir_path(__FILE__));
-                    $this->define('PLUGIN_DIR_URL', plugin_dir_url(__FILE__));
+                    $this->define('CGFWC_VERSION', '1.0');
+                    $this->define('CGFWC_PREFIX', 'cgfwc_');
+                    $this->define('CGFWC_TEXT_DOMAIN', 'starter-plugin');
+                    $this->define('CGFWC_PLUGIN_DIR_PATH', plugin_dir_path(__FILE__));
+                    $this->define('CGFWC_PLUGIN_DIR_URL', plugin_dir_url(__FILE__));
                 }
 
                 /**
@@ -108,7 +108,7 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                  */
                 public function includes()
                 {
-                    $this->file(PLUGIN_DIR_PATH. 'includes/coinbase-gateway-for-woocommerce-functions.php');
+                    $this->file(CGFWC_PLUGIN_DIR_PATH. 'includes/coinbase-gateway-for-woocommerce-functions.php');
                 }
 
                 /**
@@ -120,42 +120,13 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                 {
                     add_action("wp_ajax_custom_ajax", [$this, 'custom_ajax']);
                     add_action("wp_ajax_nopriv_custom_ajax", [$this, 'custom_ajax']);
-                    wp_enqueue_style(TEXT_DOMAIN . '-css', PLUGIN_DIR_URL . 'assets/css/style.css', '', VERSION);
-                    wp_enqueue_script(TEXT_DOMAIN . '-custom-js', PLUGIN_DIR_URL . 'assets/js/custom.js', '', VERSION);
+                    wp_enqueue_style(CGFWC_TEXT_DOMAIN . '-css', CGFWC_PLUGIN_DIR_URL . 'assets/css/style.css', '', CGFWC_VERSION);
+                    wp_enqueue_script(CGFWC_TEXT_DOMAIN . '-custom-js', CGFWC_PLUGIN_DIR_URL . 'assets/js/custom.js', '', CGFWC_VERSION);
                 }
 
                 public function custom_ajax()
                 {
                     die('YAY');
-                }
-
-                /**
-                 * Adds Admin Page in Dashboard
-                 * @since 1.0
-                 * @version 1.0
-                 */
-                public function add_menu()
-                {
-                    add_menu_page(
-                        __( 'Starter Plugin', TEXT_DOMAIN ),
-                        'Starter Plugin',
-                        'manage_options',
-                        TEXT_DOMAIN . '-home',
-                        [$this, 'home'],
-                        'dashicons-admin-site-alt2'
-                    );
-                }
-
-                /**
-                 * Home page of Plugin
-                 * @since 1.0
-                 * @version 1.0
-                 */
-                public function home()
-                {
-                    ?>
-                    <a href="" id="click-me">click me</a>
-                    <?php
                 }
 
                 /**
@@ -166,7 +137,6 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                 public function add_actions()
                 {
                     add_action('init', [$this, 'enqueue_scripts']);
-                    add_action('admin_menu', [$this, 'add_menu']);
                     add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
 
                 }
