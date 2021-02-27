@@ -250,6 +250,7 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
 
                     // Mark as on-hold (we're awaiting the cheque)
                     $order->update_status('on-hold', __( 'Awaiting cheque payment', 'woocommerce' ));
+
                     $body = array (
                         'name' => $order_id,
                         'description' => 'WooCommerce Order ID: ' . $order_id,
@@ -265,41 +266,62 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                             ),
                     );
 
-                    $ch = curl_init();
-
-                    curl_setopt($ch, CURLOPT_URL, 'https://api.commerce.coinbase.com/checkouts');
-                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-                    curl_setopt($ch, CURLOPT_POST, 1);
-                    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-                    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-                    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode( $body ) );
-
-                    $headers = array();
-                    $headers[] = 'Content-Type: application/json';
-                    $headers[] = 'X-Cc-Api-Key: ' . $this->api_key;
-                    $headers[] = 'X-Cc-Version: 2018-03-22';
-                    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-
-                    $result = curl_exec($ch);
-                    if (curl_errno($ch)) {
-                        echo 'Error:' . curl_error($ch);
-                    }
-                    curl_close($ch);
-
-                    $response = json_decode( $result );
-
-                    $cc_order_id = $response->data->id;
-
-                    $cc_redirect = 'https://commerce.coinbase.com/checkout/' . $cc_order_id ;
-
-                    // Remove cart
-                    $woocommerce->cart->empty_cart();
-
-                    // Return thankyou redirect
-                    return array(
-                        'result' => 'success',
-                        'redirect' => $cc_redirect
+                    $headers = array(
+                        'Content-Type'  =>  'application/json',
+                        'X-Cc-Api-Key'  =>  $this->api_key,
+                        'X-Cc-Version'  =>  '2018-03-22'
                     );
+
+                    $endpoint = 'https://api.commerce.coinbase.com/checkouts';
+
+                    $body = wp_json_encode( $body );
+
+                    $options = array(
+                        'body'          =>  $body,
+                        'headers'       =>  $headers,
+                        'method'        =>  'POST',
+                        'timeout'       =>  45,
+                        'redirection'   =>  5,
+                        'httpversion'   =>  '1.0',
+                        'sslverify'     =>  false,
+                        'data_format'   => 'body'
+                    );
+
+                    $response = wp_remote_post(
+                        $endpoint,
+                        $options
+                    );
+
+                    $response_code = wp_remote_retrieve_response_code( $response );
+
+                    $response_msg = wp_remote_retrieve_response_message( $response );
+
+                    if(  $response_code == 201 )
+                    {
+                        $response = json_decode( $response['body'] );
+
+                        update_user_meta( get_current_user_id(), 'cgfwc' ,$response->data->id );
+
+                        $cc_redirect = 'https://commerce.coinbase.com/checkout/' . $response->data->id ;
+
+                        // Remove cart
+                        $woocommerce->cart->empty_cart();
+
+                        // Return thankyou redirect
+                        return array(
+                            'result' => 'success',
+                            'redirect' => $cc_redirect
+                        );
+                    }
+                    else
+                    {
+                        wc_add_notice( sprintf( 'Error Code: %u Message: %s', $response_code, $response_msg ), 'error' );
+                    }
+                }
+
+                public function cc_through_error()
+                {
+                    return 'YAYY';
                 }
 
                 /**
