@@ -3,14 +3,14 @@
  * Plugin Name: Commerce Coinbase For WooCommerce
  * Plugin URI: https://www.scintelligencia.com/
  * Author: SCI Intelligencia
- * Description: Commerce Coinbase For WooCommerce, Let user checkout with well known payment gateway.
+ * Description: Commerce Coinbase For WooCommerce, Let your customer checkout with well known payment gateway.
  * Version: 1.0
  * Author: Syed Muhammad Usman
  * Author URI: https://www.linkedin.com/in/syed-muhammad-usman/
  * License: GPL v2 or later
  * Stable tag: 1.0
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Tags: WooCommerce, posts, products, Statistics, counter, track
+ * Tags: woocommerce, commerce coinbase, payment, payment gateway, commerce, product
  * @author Syed Muhammad Usman
  * @url https://www.fiverr.com/mr_ussi
  * @version 1.0

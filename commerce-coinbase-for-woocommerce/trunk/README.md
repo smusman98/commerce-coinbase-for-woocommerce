@@ -8,7 +8,7 @@ Requires PHP: 5.2.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Commerce Coinbase For WooCommerce, Let user checkout with well known payment gateway.
+Commerce Coinbase For WooCommerce, Let your customer checkout with well known payment gateway.
 
 == Description ==
 
