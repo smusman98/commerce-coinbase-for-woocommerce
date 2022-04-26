@@ -18,4 +18,18 @@ jQuery(document).ready( function() {
 
     })
 
-})
+});
+
+function CoinbaceCommerceCallBack() {
+    BuyWithCrypto.registerCallback('onSuccess', function(e){
+        alert('onSuccess');
+    });
+
+    BuyWithCrypto.registerCallback('onFailure', function(e){
+        alert('onFailure');
+    });
+
+    BuyWithCrypto.registerCallback('onPaymentDetected', function(e){
+        alert('onPaymentDetected');
+    });
+}
