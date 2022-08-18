@@ -1,18 +1,12 @@
 jQuery(document).ready( function() {
-    jQuery("#click-me").click( function(e) {
+    jQuery("#ccfwc-pro-notice").click( function(e) {
         e.preventDefault();
         jQuery.ajax({
-            type : "post",
-            dataType : "json",
+            type : "POST",
             url : ajaxurl,
-            data : {action: "custom_ajax"},
+            data : {action: "ccfwc-exit-pro-notice"},
             success: function(response) {
-                if(response.type == "success") {
-                    alert(response);
-                }
-                else {
-                    alert(response);
-                }
+                jQuery( '.ccfwc-pro-notice-main .notice-dismiss' ).click();
             }
         })
 

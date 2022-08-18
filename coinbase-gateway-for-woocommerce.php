@@ -1,22 +1,60 @@
 <?php
 /**
- * Plugin Name: Commerce Coinbase For WooCommerce
+ * Plugin Name: Coinbase Commerce For WooCommerce
  * Plugin URI: https://www.scintelligencia.com/
  * Author: SCI Intelligencia
- * Description: Commerce Coinbase For WooCommerce, Let your customer checkout with well known payment gateway.
- * Version: 1.4.2
+ * Description: Coinbase Commerce For WooCommerce, Let your customer checkout with well known payment gateway.
+ * Version: 1.4.8
  * Author: Syed Muhammad Usman
  * Author URI: https://www.linkedin.com/in/syed-muhammad-usman/
  * License: GPL v2 or later
- * Stable tag: 1.4.2
+ * Stable tag: 1.4.8
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Tags: woocommerce, commerce coinbase, payment, payment gateway, commerce, product
+ * Tags: woocommerce, coinbase commerce, payment, payment gateway, commerce, product
  * @author Syed Muhammad Usman
  * @url https://www.fiverr.com/mr_ussi
- * @version 1.4.2
+ * @version 1.4.8
  */
 
+if ( ! function_exists( 'ccfw_fs' ) ) {
+    // Create a helper function for easy SDK access.
+    function ccfw_fs() {
+        global $ccfw_fs;
+
+        if ( ! isset( $ccfw_fs ) ) {
+            // Include Freemius SDK.
+            require_once dirname(__FILE__) . '/freemius/start.php';
+
+            $ccfw_fs = fs_dynamic_init( array(
+                'id'                  => '10657',
+                'slug'                => 'coinbase-commerce-for-woocommerce',
+                'type'                => 'plugin',
+                'public_key'          => 'pk_7fa95bbb71a798b8cd3764dc762f4',
+                'is_premium'          => false,
+                'has_addons'          => false,
+                'has_paid_plans'      => false,
+                'menu'                => array(
+                    'first-path'     => 'plugins.php',
+                    'account'        => false,
+                    'contact'        => false,
+                    'support'        => false,
+                ),
+            ) );
+        }
+
+        return $ccfw_fs;
+    }
+
+    // Init Freemius.
+    ccfw_fs();
+    // Signal that SDK was initiated.
+    do_action( 'ccfw_fs_loaded' );
+}
+
 if ( ! defined( 'ABSPATH' ) ) exit;
+
+define( 'CCFWC_PLUGIN_DIR_URL', plugin_dir_url( __FILE__ ) );
+define( 'CGFWC_VERSION', '1.4.7' );
 
 if ( !function_exists( 'init_coinbase_commerce_wc' ) )
 {
@@ -37,8 +75,8 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                     $this->title = $this->get_option( 'title' );
                     $this->icon = plugin_dir_url( __FILE__ ) . 'assets/images/icon.png';
                     $this->has_fields = false;
-                    $this->method_title = __( 'Commerce Coinbase Gateway', 'cgfwc' );
-                    $this->method_description = __( 'Commerce Coinbase Redirects to Coinbase Off-Site Checkout', 'cgfwc' );
+                    $this->method_title = __( 'Coinbase Commerce Gateway', 'cgfwc' );
+                    $this->method_description = __( 'Coinbase Commerce Redirects to Coinbase Off-Site Checkout', 'cgfwc' );
                     $this->init_form_fields();
 
                     $this->init_settings();
@@ -46,7 +84,7 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                     $this->api_key = $this->get_option( 'api_key' );
 
                     add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
-                    add_action( 'wp_enqueue_scripts', array( $this, 'payment_scripts' ) );   
+                    add_action( 'wp_enqueue_scripts', array( $this, 'payment_scripts' ) );
                 }
 
                 /**
@@ -110,20 +148,6 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                     $this->file(CGFWC_PLUGIN_DIR_PATH. 'includes/coinbase-gateway-for-woocommerce-functions.php');
                 }
 
-                /**
-                 * Enqueue Styles and Scripts
-                 * @since 1.0
-                 * @version 1.0
-                 */
-                public function enqueue_scripts()
-                {
-                    add_action("wp_ajax_custom_ajax", [$this, 'custom_ajax']);
-                    add_action("wp_ajax_nopriv_custom_ajax", [$this, 'custom_ajax']);
-                    wp_enqueue_style(CGFWC_TEXT_DOMAIN . '-css', CGFWC_PLUGIN_DIR_URL . 'assets/css/style.css', '', CGFWC_VERSION);
-                    wp_enqueue_script(CGFWC_TEXT_DOMAIN . '-custom-js', CGFWC_PLUGIN_DIR_URL . 'assets/js/custom.js', '', CGFWC_VERSION);
-                    wp_enqueue_script(CGFWC_TEXT_DOMAIN . '-coinbase-commerce', 'https://commerce.coinbase.com/v1/checkout.js?onload=CoinbaceCommerceCallBack', array( '-custom-js' ), CGFWC_VERSION);
-                }
-
                 public function custom_ajax()
                 {
                     die('YAY');
@@ -137,7 +161,6 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                 public function add_actions()
                 {
                     add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
-                    add_action( 'enqueue_scripts', array( $this, 'enqueue_scripts' ) );
                 }
 
                 /**
@@ -177,18 +200,18 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                              'default'   =>  'no'
                         ),
                         'title' =>  array(
-                            'title'         =>  __( 'Commerce Coinbase', 'cgfwc' ),
+                            'title'         =>  __( 'Coinbase Commerce', 'cgfwc' ),
                             'type'          =>  'text',
-                            'default'       =>  __( 'Commerce Coinbase Payment Gateway', 'cgfwc' ),
+                            'default'       =>  __( 'Coinbase Commerce Payment Gateway', 'cgfwc' ),
                             'desc_tip'      => true,
-                            'description'   =>  __( 'Add a new title for Commerce Coinbase Payment Gateway, Customers will se at checkout', 'cgfwc' ),
+                            'description'   =>  __( 'Add a new title for Coinbase Commerce Payment Gateway, Customers will se at checkout', 'cgfwc' ),
                         ),
                         'description'   =>  array(
-                            'title'         =>  __( 'Pay with Commerce Coinbase Payment Gateway', 'cgfwc' ),
+                            'title'         =>  __( 'Pay with Coinbase Commerce Payment Gateway', 'cgfwc' ),
                             'type'          =>  'textarea',
-                            'default'       =>  __( 'Please checkout with Commerce Coinbase to place order', 'cgfwc' ),
+                            'default'       =>  __( 'Please checkout with Coinbase Commerce to place order', 'cgfwc' ),
                             'desc_tip'      => true,
-                            'description'   =>  __( 'Add a new description for Commerce Coinbase Payment Gateway, Customers will se at checkout', 'cgfwc' ),
+                            'description'   =>  __( 'Add a new description for Coinbase Commerce Payment Gateway, Customers will se at checkout', 'cgfwc' ),
                         ),
                         'instructions'   =>  array(
                             'title'         =>  __( 'Instructions', 'cgfwc' ),
@@ -245,6 +268,8 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                             ),
                         "redirect_url"  =>  $site_url
                     );
+
+                    $body = apply_filters( 'ccfwc_filter_checkout_body', $body );
 
                     $headers = array(
                         'Content-Type'  =>  'application/json',
@@ -374,3 +399,41 @@ add_filter( 'woocommerce_payment_gateways', 'add_coinbase_to_wc' );
 
 require_once plugin_dir_path(__FILE__) . 'includes/webhook.php';
 
+
+//Notice
+add_action( 'admin_enqueue_scripts', 'ccfwc_enqueue_scripts' );
+add_action( "wp_ajax_ccfwc-exit-pro-notice", 'ccfwc_exit_pro_notice' );
+
+if( !function_exists( 'ccfwc_enqueue_scripts' ) ):
+function ccfwc_enqueue_scripts()
+{
+    wp_enqueue_style( 'ccfwc-css', CCFWC_PLUGIN_DIR_URL . 'assets/css/style.css', '', CGFWC_VERSION);
+    wp_enqueue_script( 'ccfwc-custom-js', CCFWC_PLUGIN_DIR_URL . 'assets/js/custom.js', array( 'jquery' ), CGFWC_VERSION);
+    wp_enqueue_script( 'ccfwc-coinbase-commerce', 'https://commerce.coinbase.com/v1/checkout.js?onload=CoinbaceCommerceCallBack', array( '-custom-js' ), CGFWC_VERSION);
+}
+endif;
+
+
+add_filter( 'plugin_row_meta', 'ccfwc_plugin_row', 10, 5 );
+
+if( !function_exists( 'ccfwc_plugin_row' ) ):
+function ccfwc_plugin_row( $plugin_meta, $plugin_file, $plugin_data, $status ) {
+
+    if( $plugin_data['slug'] == 'commerce-coinbase-for-woocommerce' ) {
+        $plugin_meta[] = sprintf(
+            '<a href="%s" style="color: green; font-weight: bold" target="_blank">%s</a>',
+            esc_url( 'https://scintelligencia.com/products/coinbase-commerce-for-woocommerce-pro/' ),
+            __( 'Go PRO' )
+        );
+
+        $plugin_meta[] = sprintf(
+            '<a href="%s" style="color: green; font-weight: bold" target="_blank">%s</a>',
+            esc_url( 'https://scintelligencia.com/testing/shop/' ),
+            __( 'Demo PRO' )
+        );
+    }
+
+    return $plugin_meta;
+
+}
+endif;
