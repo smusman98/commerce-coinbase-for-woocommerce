@@ -10,7 +10,34 @@ jQuery(document).ready( function() {
             }
         })
 
-    })
+    });
+
+    jQuery( document ).on( 'click', '#woocommerce_coinbase_commerce_gateway_product_icon', function( e ) {
+
+        e.preventDefault();
+        window.open( 'https://coderpress.co/products/coinbase-commerce-for-woocommerce/', '_blank' );
+
+    } );
+
+    jQuery( document ).on( 'click', '#woocommerce_coinbase_commerce_gateway_product_icons', function( e ) {
+
+        e.preventDefault();
+        window.open( 'https://coderpress.co/products/coinbase-commerce-for-woocommerce/', '_blank' );
+
+    } );
+
+    jQuery( document ).on( {
+        click( e ) {
+            e.preventDefault();
+            window.open( 'https://coderpress.co/products/coinbase-commerce-for-woocommerce/', '_blank' );
+        },
+        input( e ) {
+            e.preventDefault();
+        },
+        keypress( e ) {
+            e.preventDefault();
+        }
+    }, '#woocommerce_coinbase_commerce_gateway_product_ids, #woocommerce_coinbase_commerce_gateway_total_price_to_checkout, #woocommerce_coinbase_commerce_gateway_order_status' );
 
 });
 

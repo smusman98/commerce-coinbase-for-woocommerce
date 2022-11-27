@@ -1,25 +1,26 @@
-=== Coinbase Commerce For WooCommerce ===
+=== Coinbase Commerce - Crypto Gateway for WooCommerce ===
 Contributors: SCI Intelligencia, smusman98
-Donate link: https://scintelligencia.com/products/coinbase-commerce-for-woocommerce-pro/
-Tags: woocommerce, coinbase, commerce, crypto, cryptocurrency, bitcoin
+Donate link: https://coderpress.co/products/coinbase-commerce-for-woocommerce/
+Tags: crypto, coinbase, ecommerce, woocommerce, woo, bitcoin, ethereum, litecoin, bitcash, blockchain, commerce, cryptocurrency
 Requires at least: 4.9
-Tested up to: 6.0
-Stable tag: 1.4.8
+Tested up to: 6.0.2
+Stable tag: 1.4.11
 Requires PHP: 5.2.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Coinbase Commerce for WooCommerce allow users to checkout with Crypto such as, Bitcoin, Bitcoin Cash, Dai, Ethereum, Litecoin, USD Coin and Etc, on WooCommece Store/ Website using well known digital payment service Coinbase Commerce.
+Coinbase Commerce is the best crypto gateway, allows users to checkout with popular crypto currencies such as Bitcoin, Bitcoin Cash, DAI, Ethereum, Dogecoin, USD Coin, Litecoin, Tether USD, ApeCoin, and Shiba Inu.
 
 == Description ==
 
-Coinbase Commerce is a payment gateway for WooCommerce, It's very esay and simple to use with WooCommerce.
+[Get Pro](https://coderpress.co/products/coinbase-commerce-for-woocommerce/) | [Live Demo](https://coinbase.coderpress.co/shop/) | [Documentation](https://coderpress.co/docs/coinbase-commerce-for-woocommerce/)
 
-Fully supported by the SCI Intelligencia team with features that are necessary to keep check.
 
 https://youtu.be/2SJmnXBuezU
 
-How to use:
+Coinbase is the best crypto gateway among other crypto exchange.
+
+How to setup Coinbase Commerce on WooCommerce webstore:
 
 * Download and Activate Coinbase Commerce For WooCommerce.
 * Enable from WooCommerce > Settings > Payments > Coinbase Commerce Gateway. 
@@ -32,23 +33,27 @@ How to use:
 > [Emails Blacklist for Everest Forms](https://wordpress.org/plugins/emails-blacklist-everest-forms/)
 
 = Currencies Support = 
-* Bitcoin BTC
-* Bitcoin Cash BCH
+* Bitcoin
+* Bitcoin Cash
 * DAI
-* Ethereum ETH
-* Litecoin LTC
-* USD Coin USDC
-* and Etc.
+* Ethereum
+* Dogecoin
+* USD Coin
+* Litecoin
+* Tether USD
+* ApeCoin
+* Shiba Inu.
 
 = Coinbase Commerce for WooCommerce Pro - Premium Includes =
-* [Product](https://scintelligencia.com/products/coinbase-commerce-for-woocommerce-pro/)
-* [Documentation](https://scintelligencia.com/coinbase-commerce-for-woocommerce/)
+* [Product](https://coderpress.co/products/coinbase-commerce-for-woocommerce/)
+* [Documentation](https://coderpress.co/docs/coinbase-commerce-for-woocommerce/)
 * Better User Experience
 * Priority Support
 * Easy Setup
 * Better Redirections
 * [Become Pro User](https://checkout.freemius.com/mode/dialog/plugin/10656/plan/18046/)
-* [Demo](https://scintelligencia.com/testing/shop/)
+* [Demo](https://coinbase.coderpress.co/shop/)
+* and much more..
 
 We're open to suggestions. 
 Contact: smusman98@gmail.com

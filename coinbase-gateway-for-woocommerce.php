@@ -4,16 +4,16 @@
  * Plugin URI: https://www.scintelligencia.com/
  * Author: SCI Intelligencia
  * Description: Coinbase Commerce For WooCommerce, Let your customer checkout with well known payment gateway.
- * Version: 1.4.8
+ * Version: 1.4.11
  * Author: Syed Muhammad Usman
  * Author URI: https://www.linkedin.com/in/syed-muhammad-usman/
  * License: GPL v2 or later
- * Stable tag: 1.4.8
+ * Stable tag: 1.4.11
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Tags: woocommerce, coinbase commerce, payment, payment gateway, commerce, product
  * @author Syed Muhammad Usman
  * @url https://www.fiverr.com/mr_ussi
- * @version 1.4.8
+ * @version 1.4.11
  */
 
 if ( ! function_exists( 'ccfw_fs' ) ) {
@@ -54,7 +54,7 @@ if ( ! function_exists( 'ccfw_fs' ) ) {
 if ( ! defined( 'ABSPATH' ) ) exit;
 
 define( 'CCFWC_PLUGIN_DIR_URL', plugin_dir_url( __FILE__ ) );
-define( 'CGFWC_VERSION', '1.4.7' );
+define( 'CGFWC_VERSION', '1.4.11' );
 
 if ( !function_exists( 'init_coinbase_commerce_wc' ) )
 {
@@ -229,7 +229,38 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                             'type'              =>  'text',
                             'default'           =>  site_url() . '?rest_route=/ccfwc/v1/complete-payment',
                             'custom_attributes' =>  array( 'readonly' => 'readonly' )
-                        )
+                        ),
+                        'product_icon'   =>  array(
+                            'title'     =>  __( 'Enable/ Disable', 'cgfwc' ),
+                            'type'      =>  'checkbox',
+                            'label'     =>  __( 'Show Crypto Icons and Individual Pricing on Product Page (Pro)', 'cgfwc' ),
+                            'default'   =>  'no'
+                       ),
+                       'product_icons'   =>  array(
+                        'title'     =>  __( 'Enable/ Disable', 'cgfwc' ),
+                        'type'      =>  'checkbox',
+                        'label'     =>  __( 'Show Crypto Icons and Individual Pricing on Shop Page (Pro)', 'cgfwc' ),
+                        'default'   =>  'no'
+                   ),
+
+                        'product_ids'    => array(
+	                        'title'       => __( 'Allowed Products', 'ccfc' ),
+	                        'type'        => 'text',
+	                        'default'     => '0',
+	                        'description' => __( 'Enter comma-separated Product IDs to allow to purchased with Coinbase, keep 0 or set empty for default behaviour. (Pro)', 'ccfc' ),
+                        ),
+                        'total_price_to_checkout' => array(
+	                        'title'       => __( 'Minimum Checkout Amount', 'ccfc' ),
+	                        'type'        => 'text',
+	                        'default'     => '0',
+	                        'description' => __( 'Minimum checkout amount to purchase with Coinbase, keep 0 or set empty for default behaviour. (Pro)', 'ccfc' ),
+                        ),
+                        'order_status' => array(
+	                        'title'       => __( 'Order Status When Payment Done', 'ccfc' ),
+	                        'type'        => 'text',
+	                        'default'     => '',
+	                        'description' => __( 'Order status to set when payment is done, keep empty for default behaviour. (Pro)', 'ccfc' ),
+                        ),
                     );
                 }
 
@@ -422,13 +453,13 @@ function ccfwc_plugin_row( $plugin_meta, $plugin_file, $plugin_data, $status ) {
     if( $plugin_data['slug'] == 'commerce-coinbase-for-woocommerce' ) {
         $plugin_meta[] = sprintf(
             '<a href="%s" style="color: green; font-weight: bold" target="_blank">%s</a>',
-            esc_url( 'https://scintelligencia.com/products/coinbase-commerce-for-woocommerce-pro/' ),
+            esc_url( 'https://coderpress.co/products/coinbase-commerce-for-woocommerce/' ),
             __( 'Go PRO' )
         );
 
         $plugin_meta[] = sprintf(
             '<a href="%s" style="color: green; font-weight: bold" target="_blank">%s</a>',
-            esc_url( 'https://scintelligencia.com/testing/shop/' ),
+            esc_url( 'https://coinbase.coderpress.co/shop/' ),
             __( 'Demo PRO' )
         );
     }
