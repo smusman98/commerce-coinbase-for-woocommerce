@@ -11,8 +11,6 @@
  * Stable tag: 1.6.3
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Tags: woocommerce, coinbase commerce, payment, payment gateway, commerce, product
- * @author Syed Muhammad Usman
- * @url https://www.fiverr.com/mr_ussi
  * @version 1.6.3
  */
 
