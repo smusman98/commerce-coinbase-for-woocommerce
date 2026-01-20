@@ -1,19 +1,19 @@
 <?php
 /**
  * Plugin Name: Coinbase Commerce For WooCommerce
- * Plugin URI: https://www.scintelligencia.com/
- * Author: SCI Intelligencia
+ * Plugin URI: https://coderpress.co/products/coinbase-commerce-for-woocommerce/?utm_source=ccwc&utm_medium=plugin-uri
+ * Author: CoderPress
  * Description: Coinbase Commerce For WooCommerce, Let your customer checkout with well known payment gateway.
- * Version: 1.4.11
- * Author: Syed Muhammad Usman
- * Author URI: https://www.linkedin.com/in/syed-muhammad-usman/
+ * Version: 1.6.6
+ * Author: CoderPress
+ * Author URI: https://coderpress.co/products/coinbase-commerce-for-woocommerce/?utm_source=ccwc&utm_medium=author-uri
  * License: GPL v2 or later
- * Stable tag: 1.4.11
+ * Stable tag: 1.6.3
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Tags: woocommerce, coinbase commerce, payment, payment gateway, commerce, product
  * @author Syed Muhammad Usman
  * @url https://www.fiverr.com/mr_ussi
- * @version 1.4.11
+ * @version 1.6.3
  */
 
 if ( ! function_exists( 'ccfw_fs' ) ) {
@@ -54,7 +54,7 @@ if ( ! function_exists( 'ccfw_fs' ) ) {
 if ( ! defined( 'ABSPATH' ) ) exit;
 
 define( 'CCFWC_PLUGIN_DIR_URL', plugin_dir_url( __FILE__ ) );
-define( 'CGFWC_VERSION', '1.4.11' );
+define( 'CGFWC_VERSION', '1.6.6' );
 
 if ( !function_exists( 'init_coinbase_commerce_wc' ) )
 {
@@ -85,6 +85,7 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
 
                     add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
                     add_action( 'wp_enqueue_scripts', array( $this, 'payment_scripts' ) );
+
                 }
 
                 /**
@@ -119,7 +120,7 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                  */
                 public function constants()
                 {
-                    $this->define('CGFWC_VERSION', '1.4.1');
+                    $this->define('CGFWC_VERSION', '1.5.0');
                     $this->define('CGFWC_PREFIX', 'cgfwc_');
                     $this->define('CGFWC_TEXT_DOMAIN', 'starter-plugin');
                     $this->define('CGFWC_PLUGIN_DIR_PATH', plugin_dir_path(__FILE__));
@@ -351,7 +352,11 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                     }
                     else
                     {
-                        wc_add_notice( sprintf( 'Error Code: %u Message: %s', $response_code, $response_msg ), 'error' );
+                        return array(
+                            'result'  => 'failure',
+                            'message' => sprintf( 'Error Code: %u Message: %s', $response_code, $response_msg ),
+                        );
+                        // wc_add_notice( sprintf( 'Error Code: %u Message: %s', $response_code, $response_msg ), 'error' );
                     }
                 }
 
@@ -433,13 +438,19 @@ require_once plugin_dir_path(__FILE__) . 'includes/webhook.php';
 
 //Notice
 add_action( 'admin_enqueue_scripts', 'ccfwc_enqueue_scripts' );
-add_action( "wp_ajax_ccfwc-exit-pro-notice", 'ccfwc_exit_pro_notice' );
 
 if( !function_exists( 'ccfwc_enqueue_scripts' ) ):
 function ccfwc_enqueue_scripts()
 {
     wp_enqueue_style( 'ccfwc-css', CCFWC_PLUGIN_DIR_URL . 'assets/css/style.css', '', CGFWC_VERSION);
     wp_enqueue_script( 'ccfwc-custom-js', CCFWC_PLUGIN_DIR_URL . 'assets/js/custom.js', array( 'jquery' ), CGFWC_VERSION);
+
+    wp_localize_script( 'ccfwc-custom-js', 'ccfwc', 
+        array( 
+            'images' => CCFWC_PLUGIN_DIR_URL . 'assets/images/',
+        ) 
+    );
+
     wp_enqueue_script( 'ccfwc-coinbase-commerce', 'https://commerce.coinbase.com/v1/checkout.js?onload=CoinbaceCommerceCallBack', array( '-custom-js' ), CGFWC_VERSION);
 }
 endif;
@@ -450,15 +461,15 @@ add_filter( 'plugin_row_meta', 'ccfwc_plugin_row', 10, 5 );
 if( !function_exists( 'ccfwc_plugin_row' ) ):
 function ccfwc_plugin_row( $plugin_meta, $plugin_file, $plugin_data, $status ) {
 
-    if( $plugin_data['slug'] == 'commerce-coinbase-for-woocommerce' ) {
+    if( isset( $plugin_data['slug'] ) && $plugin_data['slug'] == 'commerce-coinbase-for-woocommerce' ) {
         $plugin_meta[] = sprintf(
             '<a href="%s" style="color: green; font-weight: bold" target="_blank">%s</a>',
-            esc_url( 'https://coderpress.co/products/coinbase-commerce-for-woocommerce/' ),
-            __( 'Go PRO' )
+            esc_url( 'https://coderpress.co/products/coinbase-commerce-for-woocommerce/?utm_source=ccwc&utm_medium=plugins-go-pro' ),
+            __( 'GO PRO🚀' )
         );
 
         $plugin_meta[] = sprintf(
-            '<a href="%s" style="color: green; font-weight: bold" target="_blank">%s</a>',
+            '<a href="%s" target="_blank">%s</a>',
             esc_url( 'https://coinbase.coderpress.co/shop/' ),
             __( 'Demo PRO' )
         );
@@ -468,3 +479,77 @@ function ccfwc_plugin_row( $plugin_meta, $plugin_file, $plugin_data, $status ) {
 
 }
 endif;
+
+add_action( 'woocommerce_blocks_payment_method_type_registration', 'cb_register_payment_method_block_integrations', 5, 1 );
+
+/**
+ * Register the Square Credit Card checkout block integration class
+ *
+ * @since 2.5.0
+ */
+function cb_register_payment_method_block_integrations( $payment_method_registry ) {
+
+    if ( class_exists( '\Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType' ) ) {
+
+        require_once 'includes/coinbase-gateway-block.php';
+        $payment_method_registry->register( new CoinbaseGatewayBlock );
+    
+    }
+
+}
+
+/**
+ * Save Cart Notice
+ * 
+ * @since 1.6.1
+ */
+$is_hidden_notice = get_option( 'ccwc_hide_save_cart_notice' );
+$is_hidden_notice = true;
+
+if( !$is_hidden_notice ) {
+
+    add_action( 'admin_notices', 'ccwc_save_cart_notice' );
+    add_action( 'admin_post_ccwc_hide_notice', 'ccwc_save_cart_hide_notice' );
+
+}
+
+if( !function_exists( 'ccwc_save_cart_notice' ) ) {
+
+    function ccwc_save_cart_notice() {
+
+        ?>
+        <div class="notice notice-success is-dismissible ccwc-sc-notice" style="border-left-color: #03a0c7; padding: 15px 0;">
+            <div style="display: flex; align-items: center;">
+                <div>
+                    <img src="https://i0.wp.com/coderpress.co/wp-content/uploads/2023/12/New-Project.jpg?w=125&ssl=1" />
+                </div>
+                <div style="margin-left: 25px;">
+                    <h1 style="font-size: 20px;">Transform "Abundant Carts🛒" into "Successful Sales💹".</h1>
+                    <p>
+                        Say Good Bye🙋‍♂️! to your Abundant Carts, Sometimes users remove product from cart🛒, the reason could be unaffordability, this is the right time to secure the sale by offering a discount🚀.
+                    </p>
+                    <h4>
+                        Grab Your 30% OFF By Using Coupon: "CCSPECIAL"
+                    </h4>
+                    <a href="https://coderpress.co/products/save-cart-for-woocommerce/?utm_source=ccwc&utm_medium=notice&utm_campaign=1&utm_id=savecart" target="_blank" class="button button-primary" style="background-color: #ffd814; border-color: #ffd814; color: #0F1111; font-weight: 400;">Get Started</a>
+                    <a href="<?php echo admin_url( 'admin-post.php?action=ccwc_hide_notice' ); ?>" style="vertical-align: -webkit-baseline-middle; margin-left: 20px;">Not interested</a>
+                </div>
+            </div>
+        </div>
+        <?php
+
+    }
+
+}
+
+if( !function_exists( 'ccwc_save_cart_hide_notice' ) ) {
+
+    function ccwc_save_cart_hide_notice() {
+
+        update_option( 'ccwc_hide_save_cart_notice', 1 );
+
+        wp_redirect( wp_get_referer() );
+
+    }
+
+}
