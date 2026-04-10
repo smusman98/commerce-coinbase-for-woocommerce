@@ -1,15 +1,15 @@
-=== Coinbase Commerce - Crypto Gateway for WooCommerce ===
+=== Coinbase Business Gateway for WooCommerce ===
 Contributors: CoderPress
 Donate link: https://coderpress.co/products/coinbase-commerce-for-woocommerce/?utm_source=ccwc&utm_medium=donate-link
-Tags: crypto, coinbase, bitcoin, ethereum, litecoin
+Tags: crypto, coinbase, usdc, base, stablecoin
 Requires at least: 4.9
 Tested up to: 6.9
-Stable tag: 1.6.6
-Requires PHP: 5.2.4
+Stable tag: 1.7.0
+Requires PHP: 8.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Coinbase Commerce is the best crypto gateway, allows users to checkout with popular crypto currencies such as Bitcoin, Bitcoin Cash, DAI, Ethereum, Dogecoin, USD Coin, Litecoin, Tether USD, ApeCoin, and Shiba Inu.
+Coinbase Business is the best gateway to accept USDC on the Base network for your WooCommerce webstore.
 
 == Description ==
 
@@ -18,31 +18,23 @@ Coinbase Commerce is the best crypto gateway, allows users to checkout with popu
 
 https://youtu.be/xBiiT51T390
 
-Coinbase is the best crypto gateway, 1,000+ sites are using it with confidence.
+1,000+ sites are using Coinbase gateways to accept payments with confidence. Update to our 1.7.0 version perfectly mapped to the new Coinbase Business standard.
 
-How to setup Coinbase Commerce on WooCommerce webstore:
+How to setup Coinbase Business on WooCommerce webstore:
 
-* Download and Activate Coinbase Commerce For WooCommerce.
-* Enable from WooCommerce > Settings > Payments > Coinbase Commerce Gateway. 
-* Enter API Key from Manage.
-* It will automatically appear to customer on checkout.
+* Download and Activate the Coinbase Plugin For WooCommerce.
+* Enable from WooCommerce > Settings > Payments > Coinbase Business Gateway.
+* Create and enter your CDP API Key Name and CDP Private Key from coinbase.com/business.
+* Set up a Webhook endpoint using the URL provided in settings, and paste the Webhook Secret.
+* Ensure your WooCommerce Store Currency is set to USD.
 
 = Currencies Support = 
-* Bitcoin
-* Bitcoin Cash
-* DAI
-* Ethereum
-* Dogecoin
-* USD Coin
-* Litecoin
-* Tether USD
-* ApeCoin
-* Shiba Inu.
+* USDC on Base
 
-= Coinbase Commerce for WooCommerce Pro - Premium Includes =
-* Show Crypto Icons and Individual Pricing on Product Page
-* Show Crypto Icons and Individual Pricing on Shop Page
-* Allow specific products to purchased with Coinbase Commerce
+= Coinbase Business for WooCommerce Pro - Premium Includes =
+* Show USDC Icons and Approximate Pricing on Product Page
+* Show USDC Icons and Approximate Pricing on Shop Page
+* Allow specific products to be purchased with Coinbase
 * Set minimum checkout amount to purchase with Coinbase
 * Specify Order status to set when payment is done
 * Better User Experience
@@ -53,6 +45,11 @@ How to setup Coinbase Commerce on WooCommerce webstore:
 
 
 == Changelog ==
+
+= 1.7.0 =
+* Major Update 🚀 - Transitioned from Coinbase Commerce to the new Coinbase Business APIs.
+* Fixed 🚀 - Plugin updated to use new CDP private key mappings and webhook authentication.
+* Notice 🚀 - WooCommerce store currency must now be set to USD and customers will pay with USDC on Base.
 
 = 1.6.6 - Jan 28, 2025 =
 * Updated 🚀 - Updated SDK to latest version. 

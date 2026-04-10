@@ -4,14 +4,16 @@
  * Plugin URI: https://coderpress.co/products/coinbase-commerce-for-woocommerce/?utm_source=ccwc&utm_medium=plugin-uri
  * Author: CoderPress
  * Description: Coinbase Commerce For WooCommerce, Let your customer checkout with well known payment gateway.
- * Version: 1.6.6
+ * Version: 1.7.0
  * Author: CoderPress
  * Author URI: https://coderpress.co/products/coinbase-commerce-for-woocommerce/?utm_source=ccwc&utm_medium=author-uri
  * License: GPL v2 or later
- * Stable tag: 1.6.3
+ * Stable tag: 1.7.0
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Tags: woocommerce, coinbase commerce, payment, payment gateway, commerce, product
- * @version 1.6.3
+ * @author Syed Muhammad Usman
+ * @url https://www.fiverr.com/mr_ussi
+ * @version 1.7.0
  */
 
 if ( ! function_exists( 'ccfw_fs' ) ) {
@@ -51,8 +53,12 @@ if ( ! function_exists( 'ccfw_fs' ) ) {
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
+if ( file_exists( dirname( __FILE__ ) . '/vendor/autoload.php' ) ) {
+    require_once dirname( __FILE__ ) . '/vendor/autoload.php';
+}
+
 define( 'CCFWC_PLUGIN_DIR_URL', plugin_dir_url( __FILE__ ) );
-define( 'CGFWC_VERSION', '1.6.6' );
+define( 'CGFWC_VERSION', '1.7.0' );
 
 if ( !function_exists( 'init_coinbase_commerce_wc' ) )
 {
@@ -79,10 +85,10 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
 
                     $this->init_settings();
                     $this->enabled = $this->get_option( 'enabled' );
-                    $this->api_key = $this->get_option( 'api_key' );
 
                     add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
                     add_action( 'wp_enqueue_scripts', array( $this, 'payment_scripts' ) );
+                    add_action( 'woocommerce_api_coinbasecommercewc', array( $this, 'handle_webhook' ) );
 
                 }
 
@@ -109,6 +115,17 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                 {
                     if (!defined($name))
                         define($name, $value);
+                }
+
+                protected function init_api() {
+                    include_once dirname( __FILE__ ) . '/includes/class-coinbase-constants.php';
+                    include_once dirname( __FILE__ ) . '/includes/class-coinbase-jwt-auth.php';
+                    include_once dirname( __FILE__ ) . '/includes/class-coinbase-api-handler.php';
+
+                    Coinbase_API_Handler::$log             = null;
+                    Coinbase_API_Handler::$cdp_key_name    = $this->get_option( 'cdp_key_name' );
+                    Coinbase_API_Handler::$cdp_private_key = $this->get_option( 'cdp_private_key' );
+                    Coinbase_API_Handler::$sandbox_mode    = 'yes' === $this->get_option( 'sandbox_mode' );
                 }
 
                 /**
@@ -198,36 +215,63 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                              'label'     =>  __( 'Enable or Disable Coinbase Payments', 'cgfwc' ),
                              'default'   =>  'no'
                         ),
+                        'sandbox_mode' => array(
+                            'title'       => __( 'Sandbox mode', 'cgfwc' ),
+                            'type'        => 'checkbox',
+                            'label'       => __( 'Enable sandbox (test) mode', 'cgfwc' ),
+                            'default'     => 'no',
+                            'description' => __( 'When enabled, the sandbox Checkouts API and sandbox webhook secret are used.', 'cgfwc' ),
+                        ),
                         'title' =>  array(
-                            'title'         =>  __( 'Coinbase Commerce', 'cgfwc' ),
+                            'title'         =>  __( 'Coinbase Business', 'cgfwc' ),
                             'type'          =>  'text',
-                            'default'       =>  __( 'Coinbase Commerce Payment Gateway', 'cgfwc' ),
+                            'default'       =>  __( 'Coinbase Business Gateway', 'cgfwc' ),
                             'desc_tip'      => true,
-                            'description'   =>  __( 'Add a new title for Coinbase Commerce Payment Gateway, Customers will se at checkout', 'cgfwc' ),
+                            'description'   =>  __( 'Add a new title for Coinbase Business Payment Gateway, Customers will se at checkout', 'cgfwc' ),
                         ),
                         'description'   =>  array(
-                            'title'         =>  __( 'Pay with Coinbase Commerce Payment Gateway', 'cgfwc' ),
+                            'title'         =>  __( 'Pay with Coinbase', 'cgfwc' ),
                             'type'          =>  'textarea',
-                            'default'       =>  __( 'Please checkout with Coinbase Commerce to place order', 'cgfwc' ),
+                            'default'       =>  __( 'Please checkout with Coinbase Business to place order', 'cgfwc' ),
                             'desc_tip'      => true,
-                            'description'   =>  __( 'Add a new description for Coinbase Commerce Payment Gateway, Customers will se at checkout', 'cgfwc' ),
+                            'description'   =>  __( 'Add a new description for Coinbase Payment Gateway', 'cgfwc' ),
                         ),
-                        'instructions'   =>  array(
-                            'title'         =>  __( 'Instructions', 'cgfwc' ),
-                            'type'          =>  'textarea',
-                            'default'       =>  __( 'Instructions', 'cgfwc' ),
-                            'desc_tip'      => true,
-                            'description'   =>  __( 'Instructions will be added to the thank you page and order email, Customers will se at checkout', 'cgfwc' ),
+                        'cdp_key_name' => array(
+                            'title'       => __( 'CDP API key name', 'cgfwc' ),
+                            'type'        => 'text',
+                            'default'     => '',
+                            'description' => sprintf(
+                                __( 'From the Coinbase Developer Platform / Business dashboard. %s', 'cgfwc' ),
+                                '<a target="_blank" href="https://coinbase.com/business">coinbase.com/business</a>'
+                            ),
                         ),
-                        'api_key' => array(
-                            'title'       => 'API Key',
-                            'type'        => 'password'
+                        'cdp_private_key' => array(
+                            'title'       => __( 'CDP API private key', 'cgfwc' ),
+                            'type'        => 'textarea',
+                            'default'     => '',
+                            'description' => __( 'EC private key in PEM format, including BEGIN/END lines.', 'cgfwc' ),
+                            'css'         => 'font-family: monospace; height: 150px;',
                         ),
-                        'webhook_url' => array(
-                            'title'             =>  'Webhook URL',
-                            'type'              =>  'text',
-                            'default'           =>  site_url() . '?rest_route=/ccfwc/v1/complete-payment',
-                            'custom_attributes' =>  array( 'readonly' => 'readonly' )
+                        'webhook_secret' => array(
+                            'title'       => __( 'Webhook secret', 'cgfwc' ),
+                            'type'        => 'text',
+                            'description' =>
+                                __( 'Coinbase Business sends payment events to your site. Set up webhooks per Coinbase documentation, then paste the secret here.', 'cgfwc' )
+                                . '<br /><br />'
+                                . sprintf(
+                                    '<a target="_blank" href="https://docs.cdp.coinbase.com/coinbase-business/checkout-apis/webhooks">%s</a>',
+                                    __( 'Webhook documentation', 'cgfwc' )
+                                )
+                                . '<br />'
+                                . sprintf(
+                                    __( 'Endpoint URL: %s', 'cgfwc' ),
+                                    '<code>' . esc_html( add_query_arg( 'wc-api', 'CoinbaseCommerceWC', home_url( '/', 'https' ) ) ) . '</code>'
+                                ),
+                        ),
+                        'sandbox_webhook_secret' => array(
+                            'title'       => __( 'Sandbox webhook secret', 'cgfwc' ),
+                            'type'        => 'text',
+                            'description' => __( 'Webhook secret for sandbox subscriptions (when sandbox mode is on).', 'cgfwc' ),
                         ),
                         'product_icon'   =>  array(
                             'title'     =>  __( 'Enable/ Disable', 'cgfwc' ),
@@ -265,7 +309,7 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
 
                 public function payment_scripts()
                 {
-                    if ( empty( $this->api_key ) ) {
+                    if ( empty( $this->get_option( 'cdp_key_name' ) ) ) {
                         return;
                     }
                 }
@@ -274,93 +318,164 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                 {
                     global $woocommerce;
                     $order = new WC_Order( $order_id );
-                    $cart_total = $woocommerce->cart->total;
 
-                    $site_url = site_url();
-
-                    $currency = $order->get_currency();
-
-                    // Mark as on-hold (we're awaiting the cheque)
-                    $order->update_status('on-hold', __( 'Awaiting cheque payment', 'woocommerce' ));
-
-                    $body = array (
-                        'name' => $order_id,
-                        'description' => 'WooCommerce Order ID: ' . $order_id,
-                        'local_price' =>
-                            array (
-                                'amount' => $cart_total,
-                                'currency' => $currency,
-                            ),
-                        'pricing_type' => 'fixed_price',
-                        'requested_info' =>
-                            array (
-                                0 => 'email',
-                            ),
-                        "redirect_url"  =>  $site_url
-                    );
-
-                    $body = apply_filters( 'ccfwc_filter_checkout_body', $body );
-
-                    $headers = array(
-                        'Content-Type'  =>  'application/json',
-                        'X-Cc-Api-Key'  =>  $this->api_key,
-                        'X-Cc-Version'  =>  '2018-03-22'
-                    );
-
-                    $endpoint = 'https://api.commerce.coinbase.com/checkouts';
-
-                    $body = wp_json_encode( $body );
-
-                    $options = array(
-                        'body'          =>  $body,
-                        'headers'       =>  $headers,
-                        'method'        =>  'POST',
-                        'timeout'       =>  45,
-                        'redirection'   =>  5,
-                        'httpversion'   =>  '1.0',
-                        'sslverify'     =>  false,
-                        'data_format'   => 'body'
-                    );
-
-                    $response = wp_remote_post(
-                        $endpoint,
-                        $options
-                    );
-
-                    $response_code = wp_remote_retrieve_response_code( $response );
-
-                    $response_msg = wp_remote_retrieve_response_message( $response );
-
-                    if(  $response_code == 201 )
-                    {
-                        $response = json_decode( $response['body'] );
-
-                        update_option( $response->data->id, $order_id );
-
-                        $cc_redirect = 'https://commerce.coinbase.com/checkout/' . $response->data->id ;
-
-                        // Remove cart
-                        $woocommerce->cart->empty_cart();
-
-                        // Return thankyou redirect
-                        return array(
-                            'result' => 'success',
-                            'redirect' => $cc_redirect
-                        );
+                    if ( get_woocommerce_currency() !== 'USD' ) {
+                        wc_add_notice( __( 'Coinbase Business requires the store currency to be USD.', 'ccfc' ), 'error' );
+                        return array( 'result' => 'fail' );
                     }
-                    else
-                    {
-                        return array(
-                            'result'  => 'failure',
-                            'message' => sprintf( 'Error Code: %u Message: %s', $response_code, $response_msg ),
-                        );
-                        // wc_add_notice( sprintf( 'Error Code: %u Message: %s', $response_code, $response_msg ), 'error' );
+
+                    // Mark as on-hold (we're awaiting the payment)
+                    $order->update_status('on-hold', __( 'Awaiting payment', 'woocommerce' ));
+
+                    $this->init_api();
+
+                    $metadata = array(
+                        'order_id'  => (string) $order->get_id(),
+                        'order_key' => $order->get_order_key(),
+                        'source'    => 'woocommerce',
+                    );
+
+                    $result = Coinbase_API_Handler::create_checkout(
+                        $order->get_total(),
+                        $metadata,
+                        site_url(),
+                        $order->get_cancel_order_url(),
+                        'WooCommerce Order ID: ' . $order_id
+                    );
+
+                    if ( ! $result[0] ) {
+                        wc_add_notice( __( 'Unable to create Coinbase checkout. Please try again or contact support.', 'ccfc' ), 'error' );
+                        return array( 'result' => 'fail' );
                     }
+
+                    $checkout = $result[1];
+
+                    $order->update_meta_data( '_coinbase_checkout_id', $checkout['id'] );
+                    $order->update_meta_data( '_coinbase_checkout_url', $checkout['url'] );
+                    $order->save();
+
+                    // Remove cart
+                    $woocommerce->cart->empty_cart();
+
+                    // Return thankyou redirect
+                    return array(
+                        'result' => 'success',
+                        'redirect' => $checkout['url']
+                    );
                 }
 
                 public function cc_through_error()
                 {
                     return 'YAYY';
+                }
+
+                public function handle_webhook() {
+                    include_once dirname( __FILE__ ) . '/includes/class-coinbase-constants.php';
+
+                    $payload = file_get_contents( 'php://input' );
+                    if ( ! empty( $payload ) && $this->validate_webhook( $payload ) ) {
+                        $data = json_decode( $payload, true );
+
+                        $raw_event_type = isset( $data['eventType'] ) ? $data['eventType'] : null;
+                        $event_type     = $raw_event_type ? Coinbase_Constants::normalize_event_type( $raw_event_type ) : null;
+                        $metadata       = isset( $data['metadata'] ) ? $data['metadata'] : array();
+
+                        if ( ! isset( $metadata['source'] ) || $metadata['source'] !== 'woocommerce' ) {
+                            exit;
+                        }
+
+                        if ( ! isset( $metadata['order_id'] ) ) {
+                            exit;
+                        }
+
+                        $order_id = $metadata['order_id'];
+                        $order    = wc_get_order( $order_id );
+
+                        if ( ! $order ) {
+                            exit;
+                        }
+
+                        if ( isset( $metadata['order_key'] ) && $order->get_order_key() !== $metadata['order_key'] ) {
+                            exit;
+                        }
+
+                        $this->_update_order_status( $order, $event_type, $data );
+                        exit;
+                    }
+                    status_header( 200 );
+                    exit;
+                }
+
+                public function validate_webhook( $payload ) {
+                    $signature_header = $this->get_webhook_signature_header();
+                    if ( '' === $signature_header ) {
+                        return false;
+                    }
+
+                    $secret = 'yes' === $this->get_option( 'sandbox_mode' )
+                        ? $this->get_option( 'sandbox_webhook_secret' )
+                        : $this->get_option( 'webhook_secret' );
+
+                    $parts = array();
+                    foreach ( explode( ',', $signature_header ) as $part ) {
+                        $split = explode( '=', $part, 2 );
+                        if ( count( $split ) === 2 ) {
+                            $parts[ $split[0] ] = $split[1];
+                        }
+                    }
+
+                    $timestamp = isset( $parts['t'] ) ? $parts['t'] : null;
+                    $signature = isset( $parts['v0'] ) ? $parts['v0'] : null;
+
+                    if ( ! $timestamp || ! $signature ) {
+                        return false;
+                    }
+
+                    if ( abs( time() - (int) $timestamp ) > 300 ) {
+                        return false;
+                    }
+
+                    $signed_payload     = $timestamp . '.' . $payload;
+                    $expected_signature = hash_hmac( 'sha256', $signed_payload, $secret );
+
+                    return hash_equals( $expected_signature, $signature );
+                }
+
+                protected function get_webhook_signature_header() {
+                    if ( function_exists( 'wp_get_request_header' ) ) {
+                        $h = wp_get_request_header( 'x-hook0-signature' );
+                        if ( is_string( $h ) && $h !== '' ) {
+                            return $h;
+                        }
+                    }
+                    if ( ! empty( $_SERVER['HTTP_X_HOOK0_SIGNATURE'] ) ) {
+                        return sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_HOOK0_SIGNATURE'] ) );
+                    }
+                    return '';
+                }
+
+                public function _update_order_status( $order, $event_type, $data = array() ) {
+                    if ( ! $order ) {
+                        return;
+                    }
+                    $prev_status = $order->get_meta( '_coinbase_status' );
+                    if ( $event_type === $prev_status ) {
+                        return;
+                    }
+                    $order->update_meta_data( '_coinbase_status', $event_type );
+
+                    if ( Coinbase_Constants::EVENT_PAYMENT_SUCCESS === $event_type ) {
+                        $txn_id = ! empty( $data['url'] ) ? basename( $data['url'] ) : '';
+                        $order->payment_complete( $txn_id );
+                        $order->update_status( 'processing', __( 'Coinbase payment was successfully processed.', 'ccfc' ) );
+                    } elseif ( Coinbase_Constants::EVENT_PAYMENT_FAILED === $event_type ) {
+                        $order->update_status( 'failed', __( 'Coinbase payment failed.', 'ccfc' ) );
+                    } elseif ( Coinbase_Constants::EVENT_PAYMENT_EXPIRED === $event_type ) {
+                        if ( 'pending' === $order->get_status() ) {
+                            $order->update_status( 'cancelled', __( 'Coinbase payment expired.', 'ccfc' ) );
+                        }
+                    }
+                    $order->save();
                 }
 
                 /**
@@ -370,8 +485,8 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                 {
                     parent::process_admin_options();
 
-                    if ( empty( $_POST['woocommerce_coinbase_commerce_gateway_api_key'] ) ) {
-                        WC_Admin_Settings::add_error( 'Error: API Key is required.' );
+                    if ( empty( $_POST['woocommerce_coinbase_commerce_gateway_cdp_key_name'] ) ) {
+                        WC_Admin_Settings::add_error( 'Error: CDP Key Name is required.' );
                         return false;
                     }
                 }
@@ -449,7 +564,6 @@ function ccfwc_enqueue_scripts()
         ) 
     );
 
-    wp_enqueue_script( 'ccfwc-coinbase-commerce', 'https://commerce.coinbase.com/v1/checkout.js?onload=CoinbaceCommerceCallBack', array( '-custom-js' ), CGFWC_VERSION);
 }
 endif;
 
