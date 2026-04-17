@@ -1,0 +1,498 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+/* Admin marketing UI (banner sidebar modal) for Coinbase Commerce free plugin */
+
+.ccfwc-pro-badge {
+    background: #6c5dd3;
+    color: #fff;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    vertical-align: middle;
+    font-weight: bold;
+    margin-left: 5px;
+    text-transform: uppercase;
+}
+
+/* PRO tag placed after the control (not in the setting title). */
+.ccfwc-pro-badge--after-control {
+    display: inline-block;
+    margin-left: 8px;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.ccfwc-pro-text-field:disabled,
+.ccfwc-pro-trigger-row input[type="checkbox"]:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+@property --ccfwc-border-angle {
+    syntax: '<angle>';
+    inherits: false;
+    initial-value: 0deg;
+}
+
+.ccfwc-settings-grid {
+    display: flex;
+    gap: 30px;
+    align-items: flex-start;
+    overflow: visible;
+}
+
+.ccfwc-settings-main {
+    flex: 1 1 0;
+}
+
+.ccfwc-sidebar {
+    width: 340px;
+    position: sticky;
+    top: 115px;
+    align-self: flex-start;
+    max-height: calc(100vh - 135px);
+    overflow-y: auto;
+    overflow-x: visible;
+}
+
+.ccfwc-sidebar .ccfwc-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+    margin-bottom: 18px;
+    border: 1px solid #e4e4e4;
+    font-family: 'Poppins', sans-serif;
+}
+
+/* Improve preview screenshots in settings table */
+.ccfwc-settings-main .forminp img[src*="product-page"],
+.ccfwc-settings-main .forminp img[src*="shop-page"] {
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ccfwc-settings-main .forminp img[src*="product-page"]:hover,
+.ccfwc-settings-main .forminp img[src*="shop-page"]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
+}
+
+.ccfwc-pro-trigger-row {
+    cursor: pointer;
+}
+
+.ccfwc-pro-trigger-row td,
+.ccfwc-pro-trigger-row th {
+    position: relative;
+}
+
+/* Override WooCommerce disabled-label cursor on pro teaser rows */
+.woocommerce table.form-table .ccfwc-pro-trigger-row label:has(input:disabled),
+.woocommerce table.form-table .ccfwc-pro-trigger-row label:has(input:disabled) * {
+    cursor: pointer !important;
+}
+
+.ccfwc-no-scroll {
+    overflow: hidden;
+}
+
+.ccfwc-pro-popup-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    z-index: 99999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(3px);
+    padding: 20px;
+}
+
+.ccfwc-pro-popup-content {
+    position: relative;
+    background: transparent;
+    padding: 0;
+    border-radius: 16px;
+    width: 640px;
+    max-width: 95vw;
+    animation: ccfwc-popup-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.ccfwc-pro-popup-content::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border-radius: 16px;
+    background: linear-gradient(270deg, #6c5dd3, #8f6ed5, #4f8cff, #6c5dd3);
+    background-size: 400% 400%;
+    animation: ccfwc-gradient-border 4s ease infinite;
+    z-index: -1;
+    opacity: 0.35;
+}
+
+.ccfwc-pro-popup-content::after {
+    content: '';
+    position: relative;
+    inset: 0;
+    background: #ffffff;
+    border-radius: 14px;
+    z-index: -1;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    border: solid #6c5dd3 3px;
+    position: absolute;
+}
+
+.ccfwc-pro-popup-inner {
+    position: relative;
+    z-index: 1;
+    font-family: 'Poppins', sans-serif;
+    padding: 28px 24px 22px;
+    text-align: center;
+}
+
+.ccfwc-pro-popup-close {
+    position: absolute;
+    right: 16px;
+    top: 14px;
+    border: 1px solid rgba(108, 93, 211, 0.15);
+    border-radius: 20%;
+    background: rgba(255, 255, 255, 0.9);
+    color: #ef476f;
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    font-size: 10px;
+    line-height: 1;
+    z-index: 5;
+    pointer-events: auto;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: pointer !important;
+}
+
+.ccfwc-pro-popup-close:hover {
+    background: #ffffff;
+    border-color: rgba(108, 93, 211, 0.25);
+}
+
+.ccfwc-pro-popup-rocket {
+    font-size: 56px;
+    line-height: 1;
+    margin-bottom: 14px;
+}
+
+.ccfwc-pro-popup-inner h2 {
+    margin: 0 0 8px;
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1.12;
+    color: #1f2937;
+    letter-spacing: -0.02em;
+}
+
+.ccfwc-pro-popup-inner p {
+    margin: 0 0 16px;
+    color: #6b7280;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.ccfwc-pro-popup-offer {
+    color: #ff5b3a;
+    font-size: 16px;
+    margin-bottom: 16px;
+}
+
+.ccfwc-pro-popup-upgrade {
+    display: block;
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto 14px;
+    background: linear-gradient(135deg, #6c5dd3 0%, #4f8cff 100%);
+    color: #fff;
+    text-decoration: none;
+    border-radius: 12px;
+    padding: 14px 22px;
+    font-size: 20px;
+    font-weight: 700;
+    box-shadow: 0 10px 26px rgba(108, 93, 211, 0.3);
+}
+
+.ccfwc-pro-popup-upgrade:hover {
+    color: #fff;
+    box-shadow: 0 14px 30px rgba(108, 93, 211, 0.36);
+}
+
+.ccfwc-pro-popup-dismiss {
+    border: 0;
+    background: transparent;
+    color: #6b7280;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 0;
+}
+
+.ccfwc-pro-popup-dismiss:hover {
+    color: #4b5563;
+}
+
+.ccfwc-divider {
+    width: 100%;
+    height: 1px;
+    background: #e5e5e5;
+    margin: 16px 0;
+}
+
+.ccfwc-trust-badges {
+    display: flex;
+    gap: 10px;
+    background: #f8f8f8;
+    border-radius: 12px;
+    padding: 8px 12px;
+    margin: 0 0 12px;
+}
+
+.ccfwc-trust-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+
+.ccfwc-trust-icon-wrapper {
+    width: 40px;
+    height: 40px;
+    border-radius: 20%;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.ccfwc-trust-icon {
+    color: #6c5dd3;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+}
+
+.ccfwc-trust-text-primary {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+    line-height: 1.3;
+}
+
+.ccfwc-trust-text-secondary {
+    font-size: 12px;
+    color: #666;
+    line-height: 1.3;
+}
+
+.ccfwc-footer-text {
+    font-size: 12px;
+    color: #000;
+    line-height: 1.6;
+    margin: 0;
+    text-align: center;
+}
+
+@keyframes ccfwc-gradient-border {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes ccfwc-popup-in {
+    from {
+        opacity: 0;
+        transform: scale(0.92) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@media (max-width: 782px) {
+    .ccfwc-pro-popup-inner {
+        padding: 22px 18px 20px;
+    }
+
+    .ccfwc-pro-popup-inner h2 {
+        font-size: 34px;
+    }
+
+    .ccfwc-pro-popup-inner p {
+        font-size: 15px;
+    }
+
+    .ccfwc-pro-popup-upgrade {
+        font-size: 28px;
+    }
+
+    .ccfwc-trust-badges {
+        flex-direction: column;
+    }
+}
+
+.ccfwc-sidebar .ccfwc-pro-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.ccfwc-sidebar .ccfwc-pro-header h3 {
+    margin: 0;
+}
+
+.ccfwc-sidebar .ccfwc-pro-features {
+    list-style: none;
+    margin: 0 0 24px;
+    padding: 0;
+}
+
+.ccfwc-sidebar .ccfwc-pro-features li {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: #11142d;
+}
+
+.ccfwc-sidebar .ccfwc-pro-features li .dashicons {
+    color: #7fba7a;
+    margin-right: 8px;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+}
+
+.ccfwc-sidebar .ccfwc-btn-primary {
+    display: flex;
+    width: 100%;
+    box-sizing: border-box;
+    justify-content: center;
+    text-align: center;
+    background: #6c5dd3;
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.ccfwc-sidebar .ccfwc-btn-secondary {
+    display: flex;
+    width: 100%;
+    box-sizing: border-box;
+    justify-content: center;
+    text-align: center;
+    background: transparent;
+    border: 2px solid #e4e4e4;
+    color: #808191;
+    padding: 10px 14px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.ccfwc-sidebar .ccfwc-btn-secondary:hover {
+    border-color: #808191;
+    color: #11142d;
+}
+
+.ccfwc-sidebar .ccfwc-card.ccfwc-pro-card {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background: transparent;
+    border: none;
+    --ccfwc-border-angle: 0deg;
+}
+
+.ccfwc-sidebar .ccfwc-card.ccfwc-pro-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    border: 3px solid transparent;
+    background:
+        linear-gradient(180deg, #ffffff 0%, #f7f7ff 100%) padding-box,
+        conic-gradient(
+            from var(--ccfwc-border-angle),
+            #ffffff,
+            #4f8cff,
+            #9c6cff,
+            #ffffff
+        ) border-box;
+    animation: ccfwc-pro-border-snake 6s linear infinite;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.ccfwc-sidebar .ccfwc-card.ccfwc-pro-card::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border-radius: 9px;
+    background:
+        radial-gradient(circle at 8px 8px, rgba(118, 93, 211, 0.18) 1.2px, transparent 1.2px),
+        radial-gradient(circle at 22px 22px, rgba(118, 93, 211, 0.12) 1.2px, transparent 1.2px),
+        linear-gradient(180deg, #ffffff 0%, #f7f7ff 100%);
+    background-position: 0 0, 16px 16px, 0 0;
+    z-index: -1;
+}
+
+@keyframes ccfwc-pro-border-snake {
+    to {
+        --ccfwc-border-angle: 360deg;
+    }
+}
+
+.shine-button {
+    position: relative;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.shine-button::before {
+    content: '';
+    position: absolute;
+    height: 250%;
+    width: 40px;
+    top: 0;
+    left: -60px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transform: rotate(45deg) translateY(-35%);
+    animation: ccfwc-shine 3s ease infinite;
+}
+
+@keyframes ccfwc-shine {
+    0% {
+        left: -80px;
+    }
+    40% {
+        left: calc(100% + 20px);
+    }
+    100% {
+        left: calc(100% + 20px);
+    }
+}
+
+
+

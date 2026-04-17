@@ -34,7 +34,7 @@ if ( ! function_exists( 'ccfw_fs' ) ) {
                 'has_addons'          => false,
                 'has_paid_plans'      => false,
                 'menu'                => array(
-                    'first-path'     => 'plugins.php',
+                    'first-path'     => 'admin.php?page=wc-settings&tab=checkout&section=coinbase_commerce_gateway&from=WCADMIN_PAYMENT_SETTINGS',
                     'account'        => false,
                     'contact'        => false,
                     'support'        => false,
@@ -59,6 +59,135 @@ if ( file_exists( dirname( __FILE__ ) . '/vendor/autoload.php' ) ) {
 
 define( 'CCFWC_PLUGIN_DIR_URL', plugin_dir_url( __FILE__ ) );
 define( 'CGFWC_VERSION', '1.7.0' );
+
+if ( ! defined( 'CCFWC_PLUGIN_FILE' ) ) {
+	define( 'CCFWC_PLUGIN_FILE', __FILE__ );
+}
+
+/**
+ * True when viewing WooCommerce → Settings → Payments → Coinbase Commerce.
+ *
+ * @return bool
+ */
+function ccfwc_is_wc_coinbase_settings_page() {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only screen check.
+	$page = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '';
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only screen check.
+	$tab = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : '';
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only screen check.
+	$section = isset( $_GET['section'] ) ? sanitize_text_field( wp_unslash( $_GET['section'] ) ) : '';
+
+	return 'wc-settings' === $page && 'checkout' === $tab && 'coinbase_commerce_gateway' === $section;
+}
+
+// New Year / Pro promo banner on gateway settings (same pattern as NOWPayments).
+add_action(
+	'admin_notices',
+	function () {
+		$dismissed = get_user_meta( get_current_user_id(), 'ccfwc_pro_notice_dismissed_2026', true );
+
+		if ( $dismissed || ! current_user_can( 'manage_options' ) || ! ccfwc_is_wc_coinbase_settings_page() ) {
+			return;
+		}
+
+		$pro_url = 'https://coderpress.co/products/coinbase-commerce-for-woocommerce/?utm_source=ccwc&utm_medium=admin_notice&utm_campaign=new_year_2026&coupon=LIFETIME25';
+		?>
+		<div class="ccfwc-pro-conversion-notice notice notice-info is-dismissible" data-dismiss-action="ccfwc_dismiss_pro_notice">
+			<div class="ccfwc-pro-notice-banner">
+				<button type="button" class="notice-dismiss">
+					<span class="screen-reader-text"><?php esc_html_e( 'Dismiss this notice.', 'cgfwc' ); ?></span>
+				</button>
+
+				<div class="ccfwc-banner-confetti">
+					<div class="ccfwc-banner-confetti-item ccfwc-banner-confetti-1"></div>
+					<div class="ccfwc-banner-confetti-item ccfwc-banner-confetti-2"></div>
+					<div class="ccfwc-banner-confetti-item ccfwc-banner-confetti-3"></div>
+					<div class="ccfwc-banner-confetti-item ccfwc-banner-confetti-4"></div>
+					<div class="ccfwc-banner-confetti-item ccfwc-banner-confetti-5"></div>
+				</div>
+
+				<div class="ccfwc-pro-notice-content">
+					<div class="ccfwc-new-year-section">
+						<div class="ccfwc-pro-notice-left">
+							<div class="ccfwc-pro-notice-icon">
+								🎉
+							</div>
+							<div class="ccfwc-pro-notice-text">
+								<h3 class="ccfwc-ny-heading">
+									<a href="<?php echo esc_url( $pro_url ); ?>" target="_blank" rel="noopener noreferrer">
+										<?php esc_html_e( 'New Year Sale', 'cgfwc' ); ?>
+									</a>
+								</h3>
+								<div class="ccfwc-ny-text">
+									<?php
+									printf(
+										/* translators: %s: discount amount */
+										esc_html__( 'Kick Off 2026 With a Whopping %s OFF! Use Code: LIFETIME25', 'cgfwc' ),
+										'25%'
+									);
+									?>
+								</div>
+							</div>
+						</div>
+						<div class="ccfwc-pro-notice-right">
+							<button
+								type="button"
+								class="ccfwc-coupon-code-btn shine-button"
+								data-coupon="LIFETIME25"
+								aria-label="<?php esc_attr_e( 'Copy coupon code LIFETIME25', 'cgfwc' ); ?>"
+							>
+								<span class="ccfwc-coupon-text">
+									<?php esc_html_e( 'Use Code', 'cgfwc' ); ?>
+									<strong>LIFETIME25</strong>
+								</span>
+							</button>
+							<a
+								href="https://coderpress.co/products/coinbase-commerce-for-woocommerce/?utm_source=ccwc&utm_medium=top-banner&utm_campaign=upgrade-to-pro"
+								target="_blank"
+								rel="noopener noreferrer"
+								class="ccfwc-pro-notice-button shine-button"
+							>
+								<?php esc_html_e( 'Upgrade to Pro', 'cgfwc' ); ?>
+							</a>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<?php
+	}
+);
+
+add_action(
+	'wp_ajax_ccfwc_dismiss_pro_notice',
+	function () {
+		check_ajax_referer( 'ccfwc_dismiss_pro_notice', 'nonce' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error();
+		}
+		update_user_meta( get_current_user_id(), 'ccfwc_pro_notice_dismissed_2026', true );
+		wp_send_json_success();
+	}
+);
+
+/**
+ * Keep Pro-only gateway options off/empty in the free (non-paying) build.
+ *
+ * @param mixed $settings Option value.
+ * @return mixed
+ */
+function ccfwc_clamp_free_gateway_pro_options( $settings ) {
+	if ( ! is_array( $settings ) || ! function_exists( 'ccfw_fs' ) || ccfw_fs()->is_paying() ) {
+		return $settings;
+	}
+	$settings['product_icon']            = 'no';
+	$settings['product_icons']           = 'no';
+	$settings['product_ids']             = '0';
+	$settings['total_price_to_checkout'] = '0';
+	$settings['order_status']            = '';
+	return $settings;
+}
+add_filter( 'option_woocommerce_coinbase_commerce_gateway_settings', 'ccfwc_clamp_free_gateway_pro_options', 10, 1 );
 
 if ( !function_exists( 'init_coinbase_commerce_wc' ) )
 {
@@ -208,6 +337,9 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                  */
                 public function init_form_fields()
                 {
+                    $pro_locked = ! ( function_exists( 'ccfw_fs' ) && ccfw_fs()->is_paying() );
+                    $pro_dis    = $pro_locked ? array( 'disabled' => 'disabled' ) : array();
+
                     $this->form_fields = array(
                         'enabled'   =>  array(
                              'title'     =>  __( 'Enabled/ Disabled', 'cgfwc' ),
@@ -227,7 +359,7 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                             'type'          =>  'text',
                             'default'       =>  __( 'Coinbase Business Gateway', 'cgfwc' ),
                             'desc_tip'      => true,
-                            'description'   =>  __( 'Add a new title for Coinbase Business Payment Gateway, Customers will se at checkout', 'cgfwc' ),
+                            'description'   =>  __( 'Add a new title for Coinbase Business Payment Gateway. Customers will see this at checkout.', 'cgfwc' ),
                         ),
                         'description'   =>  array(
                             'title'         =>  __( 'Pay with Coinbase', 'cgfwc' ),
@@ -274,35 +406,43 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                             'description' => __( 'Webhook secret for sandbox subscriptions (when sandbox mode is on).', 'cgfwc' ),
                         ),
                         'product_icon'   =>  array(
-                            'title'     =>  __( 'Enable/ Disable', 'cgfwc' ),
-                            'type'      =>  'checkbox',
-                            'label'     =>  __( 'Show Crypto Icons and Individual Pricing on Product Page (Pro)', 'cgfwc' ),
-                            'default'   =>  'no'
+                            'title'             =>  __( 'Enable/ Disable', 'cgfwc' ),
+                            'type'              =>  'checkbox',
+                            'label'             =>  __( 'Show Crypto Icons and Individual Pricing on Product Page', 'cgfwc' ),
+                            'default'           =>  'no',
+                            'custom_attributes' => $pro_dis,
                        ),
                        'product_icons'   =>  array(
-                        'title'     =>  __( 'Enable/ Disable', 'cgfwc' ),
-                        'type'      =>  'checkbox',
-                        'label'     =>  __( 'Show Crypto Icons and Individual Pricing on Shop Page (Pro)', 'cgfwc' ),
-                        'default'   =>  'no'
+                        'title'             =>  __( 'Enable/ Disable', 'cgfwc' ),
+                        'type'              =>  'checkbox',
+                        'label'             =>  __( 'Show Crypto Icons and Individual Pricing on Shop Page', 'cgfwc' ),
+                        'default'           =>  'no',
+                        'custom_attributes' => $pro_dis,
                    ),
 
                         'product_ids'    => array(
-	                        'title'       => __( 'Allowed Products', 'ccfc' ),
-	                        'type'        => 'text',
-	                        'default'     => '0',
-	                        'description' => __( 'Enter comma-separated Product IDs to allow to purchased with Coinbase, keep 0 or set empty for default behaviour. (Pro)', 'ccfc' ),
+	                        'title'             => __( 'Allowed Products', 'cgfwc' ),
+	                        'type'              => 'text',
+	                        'class'             => 'input-text regular-input ccfwc-pro-text-field',
+	                        'default'           => '0',
+	                        'description'       => __( 'Enter comma-separated Product IDs to allow to purchased with Coinbase, keep 0 or set empty for default behaviour.', 'cgfwc' ),
+	                        'custom_attributes' => $pro_dis,
                         ),
                         'total_price_to_checkout' => array(
-	                        'title'       => __( 'Minimum Checkout Amount', 'ccfc' ),
-	                        'type'        => 'text',
-	                        'default'     => '0',
-	                        'description' => __( 'Minimum checkout amount to purchase with Coinbase, keep 0 or set empty for default behaviour. (Pro)', 'ccfc' ),
+	                        'title'             => __( 'Minimum Checkout Amount', 'cgfwc' ),
+	                        'type'              => 'text',
+	                        'class'             => 'input-text regular-input ccfwc-pro-text-field',
+	                        'default'           => '0',
+	                        'description'       => __( 'Minimum checkout amount to purchase with Coinbase, keep 0 or set empty for default behaviour.', 'cgfwc' ),
+	                        'custom_attributes' => $pro_dis,
                         ),
                         'order_status' => array(
-	                        'title'       => __( 'Order Status When Payment Done', 'ccfc' ),
-	                        'type'        => 'text',
-	                        'default'     => '',
-	                        'description' => __( 'Order status to set when payment is done, keep empty for default behaviour. (Pro)', 'ccfc' ),
+	                        'title'             => __( 'Order Status When Payment Done', 'cgfwc' ),
+	                        'type'              => 'text',
+	                        'class'             => 'input-text regular-input ccfwc-pro-text-field',
+	                        'default'           => '',
+	                        'description'       => __( 'Order status to set when payment is done, keep empty for default behaviour.', 'cgfwc' ),
+	                        'custom_attributes' => $pro_dis,
                         ),
                     );
                 }
@@ -320,7 +460,7 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                     $order = new WC_Order( $order_id );
 
                     if ( get_woocommerce_currency() !== 'USD' ) {
-                        wc_add_notice( __( 'Coinbase Business requires the store currency to be USD.', 'ccfc' ), 'error' );
+                        wc_add_notice( __( 'Coinbase Business requires the store currency to be USD.', 'cgfwc' ), 'error' );
                         return array( 'result' => 'fail' );
                     }
 
@@ -335,16 +475,22 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                         'source'    => 'woocommerce',
                     );
 
+                    $success_url = $this->get_return_url( $order );
+                    $cancel_url  = $order->get_cancel_order_url();
+                    if ( is_ssl() || 'yes' === get_option( 'woocommerce_force_ssl_checkout' ) ) {
+                        $cancel_url = str_replace( 'http:', 'https:', $cancel_url );
+                    }
+
                     $result = Coinbase_API_Handler::create_checkout(
                         $order->get_total(),
                         $metadata,
-                        site_url(),
-                        $order->get_cancel_order_url(),
+                        $success_url,
+                        $cancel_url,
                         'WooCommerce Order ID: ' . $order_id
                     );
 
                     if ( ! $result[0] ) {
-                        wc_add_notice( __( 'Unable to create Coinbase checkout. Please try again or contact support.', 'ccfc' ), 'error' );
+                        wc_add_notice( __( 'Unable to create Coinbase checkout. Please try again or contact support.', 'cgfwc' ), 'error' );
                         return array( 'result' => 'fail' );
                     }
 
@@ -467,12 +613,12 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                     if ( Coinbase_Constants::EVENT_PAYMENT_SUCCESS === $event_type ) {
                         $txn_id = ! empty( $data['url'] ) ? basename( $data['url'] ) : '';
                         $order->payment_complete( $txn_id );
-                        $order->update_status( 'processing', __( 'Coinbase payment was successfully processed.', 'ccfc' ) );
+                        $order->add_order_note( __( 'Coinbase payment was successfully processed.', 'cgfwc' ) );
                     } elseif ( Coinbase_Constants::EVENT_PAYMENT_FAILED === $event_type ) {
-                        $order->update_status( 'failed', __( 'Coinbase payment failed.', 'ccfc' ) );
+                        $order->update_status( 'failed', __( 'Coinbase payment failed.', 'cgfwc' ) );
                     } elseif ( Coinbase_Constants::EVENT_PAYMENT_EXPIRED === $event_type ) {
-                        if ( 'pending' === $order->get_status() ) {
-                            $order->update_status( 'cancelled', __( 'Coinbase payment expired.', 'ccfc' ) );
+                        if ( in_array( $order->get_status(), array( 'pending', 'on-hold' ), true ) ) {
+                            $order->update_status( 'cancelled', __( 'Coinbase payment expired.', 'cgfwc' ) );
                         }
                     }
                     $order->save();
@@ -483,11 +629,39 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                  */
                 public function process_admin_options()
                 {
+                    // phpcs:disable WordPress.Security.NonceVerification.Missing -- WooCommerce settings form handles nonce.
+                    $key_name_field = $this->get_field_key( 'cdp_key_name' );
+                    $priv_key_field = $this->get_field_key( 'cdp_private_key' );
+                    $posted_name    = isset( $_POST[ $key_name_field ] ) ? trim( wp_unslash( $_POST[ $key_name_field ] ) ) : '';
+                    $posted_key     = isset( $_POST[ $priv_key_field ] ) ? trim( wp_unslash( $_POST[ $priv_key_field ] ) ) : '';
+                    // phpcs:enable WordPress.Security.NonceVerification.Missing
+
+                    $saving_enabled = ! empty( $_POST[ $this->get_field_key( 'enabled' ) ] );
+                    if ( $saving_enabled ) {
+                        if ( '' === $posted_name ) {
+                            WC_Admin_Settings::add_error( __( 'Coinbase Business: CDP API key name is required when the gateway is enabled.', 'cgfwc' ) );
+                            return false;
+                        }
+                        if ( '' === $posted_key ) {
+                            WC_Admin_Settings::add_error( __( 'Coinbase Business: CDP API private key is required when the gateway is enabled.', 'cgfwc' ) );
+                            return false;
+                        }
+                    }
+
                     parent::process_admin_options();
 
-                    if ( empty( $_POST['woocommerce_coinbase_commerce_gateway_cdp_key_name'] ) ) {
-                        WC_Admin_Settings::add_error( 'Error: CDP Key Name is required.' );
-                        return false;
+                    if ( ! ( function_exists( 'ccfw_fs' ) && ccfw_fs()->is_paying() ) ) {
+                        $key  = $this->get_option_key();
+                        $opts = get_option( $key, array() );
+                        if ( is_array( $opts ) ) {
+                            $opts['product_icon']            = 'no';
+                            $opts['product_icons']           = 'no';
+                            $opts['product_ids']             = '0';
+                            $opts['total_price_to_checkout'] = '0';
+                            $opts['order_status']            = '';
+                            update_option( $key, $opts );
+                            $this->init_settings();
+                        }
                     }
                 }
 
@@ -553,10 +727,10 @@ require_once plugin_dir_path(__FILE__) . 'includes/webhook.php';
 add_action( 'admin_enqueue_scripts', 'ccfwc_enqueue_scripts' );
 
 if( !function_exists( 'ccfwc_enqueue_scripts' ) ):
-function ccfwc_enqueue_scripts()
+function ccfwc_enqueue_scripts( $hook_suffix )
 {
     wp_enqueue_style( 'ccfwc-css', CCFWC_PLUGIN_DIR_URL . 'assets/css/style.css', '', CGFWC_VERSION);
-    wp_enqueue_script( 'ccfwc-custom-js', CCFWC_PLUGIN_DIR_URL . 'assets/js/custom.js', array( 'jquery' ), CGFWC_VERSION);
+    wp_enqueue_script( 'ccfwc-custom-js', CCFWC_PLUGIN_DIR_URL . 'assets/js/custom.js', array( 'jquery' ), CGFWC_VERSION, true );
 
     wp_localize_script( 'ccfwc-custom-js', 'ccfwc', 
         array( 
@@ -564,33 +738,96 @@ function ccfwc_enqueue_scripts()
         ) 
     );
 
-}
-endif;
-
-
-add_filter( 'plugin_row_meta', 'ccfwc_plugin_row', 10, 5 );
-
-if( !function_exists( 'ccfwc_plugin_row' ) ):
-function ccfwc_plugin_row( $plugin_meta, $plugin_file, $plugin_data, $status ) {
-
-    if( isset( $plugin_data['slug'] ) && $plugin_data['slug'] == 'commerce-coinbase-for-woocommerce' ) {
-        $plugin_meta[] = sprintf(
-            '<a href="%s" style="color: green; font-weight: bold" target="_blank">%s</a>',
-            esc_url( 'https://coderpress.co/products/coinbase-commerce-for-woocommerce/?utm_source=ccwc&utm_medium=plugins-go-pro' ),
-            __( 'GO PRO🚀' )
+    if ( 'plugins.php' === $hook_suffix ) {
+        wp_enqueue_style(
+            'ccfwc-admin-poppins',
+            'https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap',
+            array(),
+            null
         );
-
-        $plugin_meta[] = sprintf(
-            '<a href="%s" target="_blank">%s</a>',
-            esc_url( 'https://coinbase.coderpress.co/shop/' ),
-            __( 'Demo PRO' )
+        wp_add_inline_style(
+            'ccfwc-admin-poppins',
+            '.plugins .ccfwc-pro-link, .plugins .ccfwc-demo-pro-link { font-family: "Poppins", sans-serif !important; }'
         );
     }
 
-    return $plugin_meta;
+    if ( ! ccfwc_is_wc_coinbase_settings_page() ) {
+        return;
+    }
+
+    wp_enqueue_style( 'dashicons' );
+    wp_enqueue_style( 'ccfwc-admin-marketing', CCFWC_PLUGIN_DIR_URL . 'assets/css/ccfwc-admin-marketing.css', array(), CGFWC_VERSION );
+
+    $dismissed = get_user_meta( get_current_user_id(), 'ccfwc_pro_notice_dismissed_2026', true );
+    if ( ! $dismissed ) {
+        wp_enqueue_style( 'ccfwc-pro-notice', CCFWC_PLUGIN_DIR_URL . 'assets/css/ccfwc-pro-notice.css', array(), CGFWC_VERSION );
+        wp_enqueue_script( 'ccfwc-pro-notice', CCFWC_PLUGIN_DIR_URL . 'assets/js/ccfwc-pro-notice.js', array( 'jquery' ), CGFWC_VERSION, true );
+        wp_localize_script(
+            'ccfwc-pro-notice',
+            'ccfwcProNotice',
+            array(
+                'ajax_url' => admin_url( 'admin-ajax.php' ),
+                'nonce'    => wp_create_nonce( 'ccfwc_dismiss_pro_notice' ),
+            )
+        );
+    }
 
 }
 endif;
+
+
+add_filter( 'plugin_action_links_' . plugin_basename( CCFWC_PLUGIN_FILE ), 'ccfwc_plugin_action_links', 10, 1 );
+
+if ( ! function_exists( 'ccfwc_plugin_action_links' ) ) {
+	/**
+	 * Green "Upgrade to Pro" next to Deactivate (same pattern as NOWPayments).
+	 *
+	 * @param array $links Existing action links.
+	 * @return array
+	 */
+	function ccfwc_plugin_action_links( $links ) {
+
+		$upgrade_link = sprintf(
+			'<a href="%s" class="ccfwc-pro-link" style="color: green; font-weight: bold;" target="_blank" rel="noopener noreferrer">%s</a>',
+			esc_url( 'https://coderpress.co/products/coinbase-commerce-for-woocommerce/?utm_source=ccwc&utm_medium=plugins-page&utm_campaign=upgrade-to-pro' ),
+			esc_html__( 'Upgrade to Pro', 'cgfwc' )
+		);
+
+		array_unshift( $links, $upgrade_link );
+
+		return $links;
+	}
+}
+
+add_filter( 'plugin_row_meta', 'ccfwc_plugin_row', 10, 4 );
+
+if ( ! function_exists( 'ccfwc_plugin_row' ) ) {
+	/**
+	 * Blue bold "Demo PRO 🚀" in description row (same pattern as NOWPayments).
+	 *
+	 * @param array  $plugin_meta An array of the plugin's metadata.
+	 * @param string $plugin_file Path to the plugin file.
+	 * @param array  $plugin_data Plugin data from plugin headers.
+	 * @param string $status      Plugin status (unused).
+	 * @return array
+	 */
+	function ccfwc_plugin_row( $plugin_meta, $plugin_file, $plugin_data, $status ) {
+
+		unset( $status, $plugin_data );
+
+		if ( strpos( $plugin_file, basename( CCFWC_PLUGIN_FILE ) ) === false ) {
+			return $plugin_meta;
+		}
+
+		$plugin_meta[] = sprintf(
+			'<a href="%s" class="ccfwc-demo-pro-link" style="color: blue; font-weight: bold;" target="_blank" rel="noopener noreferrer">%s</a>',
+			esc_url( 'https://coinbase.coderpress.co/shop/' ),
+			esc_html__( 'Demo PRO 🚀', 'cgfwc' )
+		);
+
+		return $plugin_meta;
+	}
+}
 
 add_action( 'woocommerce_blocks_payment_method_type_registration', 'cb_register_payment_method_block_integrations', 5, 1 );
 

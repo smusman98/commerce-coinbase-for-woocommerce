@@ -23,7 +23,9 @@ class Coinbase_API_Handler {
 	 * @param string $level   Optional. Default 'info'.
 	 */
 	public static function log( $message, $level = 'info' ) {
-		return call_user_func( self::$log, $message, $level );
+		if ( is_callable( self::$log ) ) {
+			return call_user_func( self::$log, $message, $level );
+		}
 	}
 
 	/**
