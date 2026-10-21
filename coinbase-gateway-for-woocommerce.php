@@ -4,14 +4,14 @@
  * Plugin URI: https://coderpress.co/products/coinbase-commerce-for-woocommerce/?utm_source=ccwc&utm_medium=plugin-uri
  * Author: CoderPress
  * Description: Coinbase Commerce For WooCommerce, Let your customer checkout with well known payment gateway.
- * Version: 2.0.0-beta.2
+ * Version: 2.0.0
  * Author: CoderPress
  * Author URI: https://coderpress.co/products/coinbase-commerce-for-woocommerce/?utm_source=ccwc&utm_medium=author-uri
  * License: GPL v2 or later
  * Stable tag: 2.0.0
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Tags: woocommerce, coinbase commerce, payment, payment gateway, commerce, product
- * @author Syed Muhammad Usman
+ * Requires Plugins: woocommerce
  * @url https://www.fiverr.com/mr_ussi
  * @version 2.0.0
  */
@@ -58,11 +58,211 @@ if ( file_exists( dirname( __FILE__ ) . '/vendor/autoload.php' ) ) {
 }
 
 define( 'CCFWC_PLUGIN_DIR_URL', plugin_dir_url( __FILE__ ) );
-define( 'CGFWC_VERSION', '2.0.0-beta.2' );
+define( 'CGFWC_VERSION', '2.0.0' );
 
 if ( ! defined( 'CCFWC_PLUGIN_FILE' ) ) {
 	define( 'CCFWC_PLUGIN_FILE', __FILE__ );
 }
+
+/**
+ * Whether WooCommerce is installed and active (site or network).
+ *
+ * @return bool
+ */
+function ccfwc_is_woocommerce_active() {
+	if ( class_exists( 'WooCommerce' ) ) {
+		return true;
+	}
+
+	if ( ! function_exists( 'is_plugin_active' ) ) {
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+	}
+
+	if ( is_plugin_active( 'woocommerce/woocommerce.php' ) ) {
+		return true;
+	}
+
+	if ( is_multisite() && function_exists( 'is_plugin_active_for_network' ) ) {
+		return is_plugin_active_for_network( 'woocommerce/woocommerce.php' );
+	}
+
+	return false;
+}
+
+/**
+ * True when WooCommerce is in the same activate / bulk-activate request (not yet in active_plugins).
+ *
+ * @return bool
+ */
+function ccfwc_is_woocommerce_being_activated() {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- activation request shape only.
+	$action = isset( $_REQUEST['action'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['action'] ) ) : '';
+
+	if ( ! in_array( $action, array( 'activate', 'activate-selected' ), true ) ) {
+		return false;
+	}
+
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	if ( isset( $_REQUEST['plugin'] ) && 'woocommerce/woocommerce.php' === wp_unslash( $_REQUEST['plugin'] ) ) {
+		return true;
+	}
+
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	if ( ! empty( $_REQUEST['checked'] ) && is_array( $_REQUEST['checked'] ) ) {
+		$checked = wp_unslash( $_REQUEST['checked'] );
+		return in_array( 'woocommerce/woocommerce.php', $checked, true );
+	}
+
+	return false;
+}
+
+/**
+ * Block activation when WooCommerce is missing.
+ */
+function ccfwc_activation_requires_woocommerce() {
+	if ( ccfwc_is_woocommerce_active() || ccfwc_is_woocommerce_being_activated() ) {
+		return;
+	}
+
+	if ( ! function_exists( 'deactivate_plugins' ) ) {
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+	}
+
+	deactivate_plugins( plugin_basename( CCFWC_PLUGIN_FILE ) );
+
+	if ( isset( $_GET['activate'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		unset( $_GET['activate'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	}
+
+	wp_die(
+		wp_kses_post(
+			sprintf(
+				/* translators: %s: WooCommerce plugin name. */
+				__( 'Coinbase Commerce For WooCommerce requires %s to be installed and active.', 'cgfwc' ),
+				'<a href="' . esc_url( admin_url( 'plugin-install.php?s=woocommerce&tab=search&type=term' ) ) . '">WooCommerce</a>'
+			)
+		),
+		esc_html__( 'Plugin Activation Error', 'cgfwc' ),
+		array( 'back_link' => true )
+	);
+}
+register_activation_hook( CCFWC_PLUGIN_FILE, 'ccfwc_activation_requires_woocommerce' );
+
+/**
+ * Deactivate this plugin if WooCommerce was turned off while it remained active.
+ */
+function ccfwc_deactivate_if_woocommerce_inactive() {
+	if ( ccfwc_is_woocommerce_active() || ! current_user_can( 'activate_plugins' ) ) {
+		return;
+	}
+
+	if ( ! function_exists( 'deactivate_plugins' ) ) {
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+	}
+
+	deactivate_plugins( plugin_basename( CCFWC_PLUGIN_FILE ) );
+}
+add_action( 'admin_init', 'ccfwc_deactivate_if_woocommerce_inactive' );
+
+/**
+ * WooCommerce → Settings → Payments → Coinbase gateway section URL.
+ *
+ * @return string
+ */
+function ccfwc_get_gateway_settings_admin_url() {
+	return admin_url( 'admin.php?page=wc-settings&tab=checkout&section=coinbase_commerce_gateway' );
+}
+
+/**
+ * Detect upgrade to 2.0.0+ (Coinbase Business) and flag the admin migration notice.
+ */
+function ccfwc_handle_plugin_version_upgrade() {
+	$stored_version = get_option( 'ccfwc_plugin_version', '' );
+
+	if ( version_compare( $stored_version, CGFWC_VERSION, '>=' ) ) {
+		return;
+	}
+
+	$show_migration_notice = false;
+
+	if ( '' !== $stored_version && version_compare( $stored_version, '2.0.0', '<' ) && version_compare( CGFWC_VERSION, '2.0.0', '>=' ) ) {
+		$show_migration_notice = true;
+	}
+
+	// Sites on 1.x before we stored version: show notice if gateway settings already exist.
+	if ( ! $show_migration_notice && '' === $stored_version && version_compare( CGFWC_VERSION, '2.0.0', '>=' ) ) {
+		$gateway_settings = get_option( 'woocommerce_coinbase_commerce_gateway_settings', array() );
+		if ( is_array( $gateway_settings ) && ! empty( $gateway_settings ) ) {
+			$show_migration_notice = true;
+		}
+	}
+
+	if ( $show_migration_notice ) {
+		update_option( 'ccfwc_show_business_migration_notice', '1' );
+	}
+
+	update_option( 'ccfwc_plugin_version', CGFWC_VERSION );
+}
+add_action( 'plugins_loaded', 'ccfwc_handle_plugin_version_upgrade', 1 );
+
+/**
+ * Whether the Coinbase Business migration notice should display for the current user.
+ *
+ * @return bool
+ */
+function ccfwc_should_show_business_migration_notice() {
+	if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
+		return false;
+	}
+
+	if ( '1' !== get_option( 'ccfwc_show_business_migration_notice' ) ) {
+		return false;
+	}
+
+	if ( get_user_meta( get_current_user_id(), 'ccfwc_business_migration_notice_dismissed', true ) ) {
+		return false;
+	}
+
+	return true;
+}
+
+/**
+ * Admin notice after upgrading from Coinbase Commerce (1.x) to Coinbase Business (2.0).
+ */
+function ccfwc_business_migration_admin_notice() {
+	if ( ! ccfwc_should_show_business_migration_notice() ) {
+		return;
+	}
+
+	$settings_url = ccfwc_get_gateway_settings_admin_url();
+	?>
+	<div class="notice notice-warning is-dismissible ccfwc-business-migration-notice">
+		<p><strong><?php esc_html_e( 'Coinbase Commerce is now Coinbase Business', 'cgfwc' ); ?></strong></p>
+		<p><?php esc_html_e( 'This plugin was updated to the new Coinbase Business checkout APIs. Please review your payment settings so checkout keeps working.', 'cgfwc' ); ?></p>
+		<ul style="list-style: disc; margin-left: 1.5em;">
+			<li><?php esc_html_e( 'Add your CDP API Key Name and CDP Private Key from coinbase.com/business (legacy Commerce API keys no longer work).', 'cgfwc' ); ?></li>
+			<li><?php esc_html_e( 'Create or update your webhook in Coinbase and paste the new webhook secret in gateway settings.', 'cgfwc' ); ?></li>
+			<li><?php esc_html_e( 'Set your WooCommerce store currency to USD. Customers will pay with USDC on the Base network.', 'cgfwc' ); ?></li>
+		</ul>
+		<p>
+			<a class="button button-primary" href="<?php echo esc_url( $settings_url ); ?>"><?php esc_html_e( 'Open payment settings', 'cgfwc' ); ?></a>
+		</p>
+	</div>
+	<?php
+}
+add_action( 'admin_notices', 'ccfwc_business_migration_admin_notice' );
+
+add_action(
+	'wp_ajax_ccfwc_dismiss_business_migration_notice',
+	function () {
+		check_ajax_referer( 'ccfwc_dismiss_business_migration_notice', 'nonce' );
+		if ( ! current_user_can( 'manage_woocommerce' ) && ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error();
+		}
+		update_user_meta( get_current_user_id(), 'ccfwc_business_migration_notice_dismissed', true );
+		wp_send_json_success();
+	}
+);
 
 /**
  * True when viewing WooCommerce → Settings → Payments → Coinbase Commerce.
@@ -823,31 +1023,41 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
  * @since 1.1
  * @version 1.0
  */
-if ( !function_exists( 'om_woocommerce_requirements' ) ) {
-    function om_woocommerce_requirements() {
-        ?>
-        <div class="notice notice-error">
-            <p><?php esc_attr_e( 'Please activate', 'woocommerce' );?> <a href="https://wordpress.org/plugins/woocommerce/"><?php esc_attr_e( 'Woocommerce', 'woocommerce' ); ?></a> <?php esc_attr_e( 'to use this plugin.', 'woocommerce' ); ?></p>
-        </div>
-        <?php
-    }
+if ( ! function_exists( 'om_woocommerce_requirements' ) ) {
+	function om_woocommerce_requirements() {
+		?>
+		<div class="notice notice-error">
+			<p>
+				<?php
+				echo wp_kses_post(
+					sprintf(
+						/* translators: %s: WooCommerce plugin name. */
+						__( 'Coinbase Commerce For WooCommerce requires %s to be installed and active.', 'cgfwc' ),
+						'<a href="' . esc_url( admin_url( 'plugin-install.php?s=woocommerce&tab=search&type=term' ) ) . '">WooCommerce</a>'
+					)
+				);
+				?>
+			</p>
+		</div>
+		<?php
+	}
 }
 
-if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) ) ) {
-    add_action( 'plugins_loaded', 'init_coinbase_commerce_wc' );
+if ( ccfwc_is_woocommerce_active() ) {
+	add_action( 'plugins_loaded', 'init_coinbase_commerce_wc' );
+
+	if ( ! function_exists( 'add_coinbase_to_wc' ) ) {
+		function add_coinbase_to_wc( $gateways ) {
+			$gateways[] = 'CoinbaseCommerceWC';
+			return $gateways;
+		}
+	}
+	add_filter( 'woocommerce_payment_gateways', 'add_coinbase_to_wc' );
+
+	add_action( 'woocommerce_blocks_payment_method_type_registration', 'cb_register_payment_method_block_integrations', 5, 1 );
 } else {
-    add_action( 'admin_notices', 'om_woocommerce_requirements' );
+	add_action( 'admin_notices', 'om_woocommerce_requirements' );
 }
-
-if ( !function_exists( 'add_coinbase_to_wc' ) ):
-    function add_coinbase_to_wc( $gateways )
-    {
-        $gateways[] = 'CoinbaseCommerceWC';
-        return $gateways;
-    }
-endif;
-
-add_filter( 'woocommerce_payment_gateways', 'add_coinbase_to_wc' );
 
 //Notice
 add_action( 'admin_enqueue_scripts', 'ccfwc_enqueue_scripts' );
@@ -874,6 +1084,24 @@ function ccfwc_enqueue_scripts( $hook_suffix )
         wp_add_inline_style(
             'ccfwc-admin-poppins',
             '.plugins .ccfwc-pro-link, .plugins .ccfwc-demo-pro-link { font-family: "Poppins", sans-serif !important; }'
+        );
+    }
+
+    if ( ccfwc_should_show_business_migration_notice() ) {
+        wp_enqueue_script(
+            'ccfwc-migration-notice',
+            CCFWC_PLUGIN_DIR_URL . 'assets/js/ccfwc-migration-notice.js',
+            array( 'jquery' ),
+            CGFWC_VERSION,
+            true
+        );
+        wp_localize_script(
+            'ccfwc-migration-notice',
+            'ccfwcMigrationNotice',
+            array(
+                'ajax_url' => admin_url( 'admin-ajax.php' ),
+                'nonce'    => wp_create_nonce( 'ccfwc_dismiss_business_migration_notice' ),
+            )
         );
     }
 
@@ -955,12 +1183,12 @@ if ( ! function_exists( 'ccfwc_plugin_row' ) ) {
 	}
 }
 
-add_action( 'woocommerce_blocks_payment_method_type_registration', 'cb_register_payment_method_block_integrations', 5, 1 );
-
 /**
- * Register the Square Credit Card checkout block integration class
+ * Register the Coinbase checkout block integration class.
  *
  * @since 2.5.0
+ *
+ * @param mixed $payment_method_registry Blocks payment method registry.
  */
 function cb_register_payment_method_block_integrations( $payment_method_registry ) {
 

@@ -3,8 +3,8 @@ Contributors: CoderPress
 Donate link: https://coderpress.co/products/coinbase-commerce-for-woocommerce/?utm_source=ccwc&utm_medium=donate-link
 Tags: crypto, coinbase, usdc, base, stablecoin
 Requires at least: 4.9
-Tested up to: 7.0
-Stable tag: 1.6.7
+Tested up to: 7.1
+Stable tag: 2.0.0
 Requires PHP: 8.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
