@@ -4,17 +4,16 @@
  * Plugin URI: https://coderpress.co/products/coinbase-commerce-for-woocommerce/?utm_source=ccwc&utm_medium=plugin-uri
  * Author: CoderPress
  * Description: Coinbase Commerce For WooCommerce, Let your customer checkout with well known payment gateway.
- * Version: 2.1.0
+ * Version: 2.0.0-beta.2
  * Author: CoderPress
  * Author URI: https://coderpress.co/products/coinbase-commerce-for-woocommerce/?utm_source=ccwc&utm_medium=author-uri
- * Requires Plugins: woocommerce
  * License: GPL v2 or later
- * Stable tag: 2.1.0
+ * Stable tag: 2.0.0
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Tags: woocommerce, coinbase commerce, payment, payment gateway, commerce, product
  * @author Syed Muhammad Usman
  * @url https://www.fiverr.com/mr_ussi
- * @version 2.1.0
+ * @version 2.0.0
  */
 
 if ( ! function_exists( 'ccfw_fs' ) ) {
@@ -59,60 +58,11 @@ if ( file_exists( dirname( __FILE__ ) . '/vendor/autoload.php' ) ) {
 }
 
 define( 'CCFWC_PLUGIN_DIR_URL', plugin_dir_url( __FILE__ ) );
-define( 'CGFWC_VERSION', '2.1.0' );
+define( 'CGFWC_VERSION', '2.0.0-beta.2' );
 
 if ( ! defined( 'CCFWC_PLUGIN_FILE' ) ) {
 	define( 'CCFWC_PLUGIN_FILE', __FILE__ );
 }
-
-/**
- * Whether WooCommerce is active (single site or network).
- *
- * @return bool
- */
-function ccfwc_is_woocommerce_active() {
-	if ( class_exists( 'WooCommerce' ) ) {
-		return true;
-	}
-
-	if ( ! function_exists( 'is_plugin_active' ) ) {
-		require_once ABSPATH . 'wp-admin/includes/plugin.php';
-	}
-
-	if ( is_plugin_active( 'woocommerce/woocommerce.php' ) ) {
-		return true;
-	}
-
-	if ( is_multisite() && is_plugin_active_for_network( 'woocommerce/woocommerce.php' ) ) {
-		return true;
-	}
-
-	return false;
-}
-
-/**
- * Prevent activation when WooCommerce is not active.
- */
-function ccfwc_activation_requires_woocommerce() {
-	if ( ccfwc_is_woocommerce_active() ) {
-		return;
-	}
-
-	deactivate_plugins( plugin_basename( CCFWC_PLUGIN_FILE ) );
-
-	wp_die(
-		wp_kses_post(
-			sprintf(
-				/* translators: %s: WooCommerce plugin name link */
-				__( 'Coinbase Commerce For WooCommerce requires %s to be installed and active.', 'cgfwc' ),
-				'<a href="' . esc_url( admin_url( 'plugin-install.php?s=woocommerce&tab=search&type=term' ) ) . '">WooCommerce</a>'
-			)
-		),
-		esc_html__( 'Plugin Activation Error', 'cgfwc' ),
-		array( 'back_link' => true )
-	);
-}
-register_activation_hook( CCFWC_PLUGIN_FILE, 'ccfwc_activation_requires_woocommerce' );
 
 /**
  * True when viewing WooCommerce → Settings → Payments → Coinbase Commerce.
@@ -569,39 +519,105 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                     include_once dirname( __FILE__ ) . '/includes/class-coinbase-constants.php';
 
                     $payload = file_get_contents( 'php://input' );
-                    if ( ! empty( $payload ) && $this->validate_webhook( $payload ) ) {
-                        $data = json_decode( $payload, true );
-
-                        $raw_event_type = isset( $data['eventType'] ) ? $data['eventType'] : null;
-                        $event_type     = $raw_event_type ? Coinbase_Constants::normalize_event_type( $raw_event_type ) : null;
-                        $metadata       = isset( $data['metadata'] ) ? $data['metadata'] : array();
-
-                        if ( ! isset( $metadata['source'] ) || $metadata['source'] !== 'woocommerce' ) {
-                            exit;
-                        }
-
-                        if ( ! isset( $metadata['order_id'] ) ) {
-                            exit;
-                        }
-
-                        $order_id = $metadata['order_id'];
-                        $order    = wc_get_order( $order_id );
-
-                        if ( ! $order ) {
-                            exit;
-                        }
-
-                        if ( isset( $metadata['order_key'] ) && $order->get_order_key() !== $metadata['order_key'] ) {
-                            exit;
-                        }
-
-                        $this->_update_order_status( $order, $event_type, $data );
+                    if ( empty( $payload ) ) {
+                        status_header( 400 );
                         exit;
                     }
+
+                    if ( ! $this->validate_webhook( $payload ) ) {
+                        status_header( 401 );
+                        exit;
+                    }
+
+                    $data = json_decode( $payload, true );
+                    if ( ! is_array( $data ) ) {
+                        status_header( 400 );
+                        exit;
+                    }
+
+                    $raw_event_type = isset( $data['eventType'] ) ? $data['eventType'] : null;
+                    $event_type     = $raw_event_type ? Coinbase_Constants::normalize_event_type( $raw_event_type ) : null;
+                    $metadata       = isset( $data['metadata'] ) && is_array( $data['metadata'] ) ? $data['metadata'] : array();
+
+                    if ( empty( $metadata['source'] ) || 'woocommerce' !== $metadata['source'] ) {
+                        status_header( 400 );
+                        exit;
+                    }
+
+                    if ( empty( $metadata['order_id'] ) || empty( $metadata['order_key'] ) ) {
+                        status_header( 400 );
+                        exit;
+                    }
+
+                    $order = wc_get_order( absint( $metadata['order_id'] ) );
+                    if ( ! $order ) {
+                        status_header( 404 );
+                        exit;
+                    }
+
+                    if ( ! hash_equals( (string) $order->get_order_key(), (string) $metadata['order_key'] ) ) {
+                        status_header( 403 );
+                        exit;
+                    }
+
+                    if ( ! $this->webhook_matches_order( $order, $data ) ) {
+                        status_header( 403 );
+                        exit;
+                    }
+
+                    $this->_update_order_status( $order, $event_type, $data );
                     status_header( 200 );
                     exit;
                 }
 
+                /**
+                 * Verify amount, currency, network, and checkout ID against the local order.
+                 *
+                 * @param WC_Order $order Order.
+                 * @param array    $data  Decoded webhook payload.
+                 * @return bool
+                 */
+                protected function webhook_matches_order( $order, $data ) {
+                    if ( empty( $data['amount'] ) || empty( $data['currency'] ) ) {
+                        return false;
+                    }
+
+                    if ( strtoupper( (string) $data['currency'] ) !== Coinbase_Constants::PAYMENT_CURRENCY ) {
+                        return false;
+                    }
+
+                    if ( empty( $data['network'] ) || strtolower( (string) $data['network'] ) !== Coinbase_Constants::PAYMENT_NETWORK ) {
+                        return false;
+                    }
+
+                    $expected_amount = wc_format_decimal( $order->get_total(), 2 );
+                    $payload_amount  = wc_format_decimal( $data['amount'], 2 );
+                    if ( $expected_amount !== $payload_amount ) {
+                        return false;
+                    }
+
+                    $stored_checkout_id  = (string) $order->get_meta( '_coinbase_checkout_id' );
+                    $payload_checkout_id = isset( $data['id'] ) ? (string) $data['id'] : '';
+                    if ( '' === $stored_checkout_id || '' === $payload_checkout_id ) {
+                        return false;
+                    }
+                    if ( ! hash_equals( $stored_checkout_id, $payload_checkout_id ) ) {
+                        return false;
+                    }
+
+                    return true;
+                }
+
+                /**
+                 * Verify X-Hook0-Signature.
+                 *
+                 * Accepts CDP general format (t,v0,h,v1) and Checkout docs format (t,h,v1):
+                 * - v0 = HMAC-SHA256 over "{t}.{body}"
+                 * - v1 = HMAC-SHA256 over "{t}.{h}.{headerValues}.{body}"
+                 *
+                 * @param string $payload Raw request body.
+                 * @return bool
+                 */
                 public function validate_webhook( $payload ) {
                     $signature_header = $this->get_webhook_signature_header();
                     if ( '' === $signature_header ) {
@@ -612,18 +628,20 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                         ? $this->get_option( 'sandbox_webhook_secret' )
                         : $this->get_option( 'webhook_secret' );
 
+                    if ( ! is_string( $secret ) || '' === $secret ) {
+                        return false;
+                    }
+
                     $parts = array();
                     foreach ( explode( ',', $signature_header ) as $part ) {
                         $split = explode( '=', $part, 2 );
                         if ( count( $split ) === 2 ) {
-                            $parts[ $split[0] ] = $split[1];
+                            $parts[ trim( $split[0] ) ] = trim( $split[1] );
                         }
                     }
 
                     $timestamp = isset( $parts['t'] ) ? $parts['t'] : null;
-                    $signature = isset( $parts['v0'] ) ? $parts['v0'] : null;
-
-                    if ( ! $timestamp || ! $signature ) {
+                    if ( ! $timestamp || ! ctype_digit( (string) $timestamp ) ) {
                         return false;
                     }
 
@@ -631,10 +649,27 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                         return false;
                     }
 
-                    $signed_payload     = $timestamp . '.' . $payload;
-                    $expected_signature = hash_hmac( 'sha256', $signed_payload, $secret );
+                    if ( ! empty( $parts['v0'] ) ) {
+                        $expected_v0 = hash_hmac( 'sha256', $timestamp . '.' . $payload, $secret );
+                        if ( hash_equals( $expected_v0, $parts['v0'] ) ) {
+                            return true;
+                        }
+                    }
 
-                    return hash_equals( $expected_signature, $signature );
+                    if ( ! empty( $parts['v1'] ) && isset( $parts['h'] ) && '' !== $parts['h'] ) {
+                        $header_names  = $parts['h'];
+                        $header_values = array();
+                        foreach ( explode( ' ', $header_names ) as $header_name ) {
+                            $header_values[] = $this->get_request_header_value( $header_name );
+                        }
+                        $signed_v1   = $timestamp . '.' . $header_names . '.' . implode( '.', $header_values ) . '.' . $payload;
+                        $expected_v1 = hash_hmac( 'sha256', $signed_v1, $secret );
+                        if ( hash_equals( $expected_v1, $parts['v1'] ) ) {
+                            return true;
+                        }
+                    }
+
+                    return false;
                 }
 
                 protected function get_webhook_signature_header() {
@@ -647,6 +682,36 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                     if ( ! empty( $_SERVER['HTTP_X_HOOK0_SIGNATURE'] ) ) {
                         return sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_HOOK0_SIGNATURE'] ) );
                     }
+                    return '';
+                }
+
+                /**
+                 * Read a request header for v1 signature binding (case-insensitive).
+                 *
+                 * @param string $name Header name from the signature `h` field.
+                 * @return string
+                 */
+                protected function get_request_header_value( $name ) {
+                    if ( function_exists( 'wp_get_request_header' ) ) {
+                        $value = wp_get_request_header( $name );
+                        if ( is_string( $value ) ) {
+                            return $value;
+                        }
+                    }
+
+                    $normalized = strtoupper( str_replace( '-', '_', $name ) );
+                    if ( 'CONTENT_TYPE' === $normalized && isset( $_SERVER['CONTENT_TYPE'] ) ) {
+                        return (string) wp_unslash( $_SERVER['CONTENT_TYPE'] );
+                    }
+                    if ( 'CONTENT_LENGTH' === $normalized && isset( $_SERVER['CONTENT_LENGTH'] ) ) {
+                        return (string) wp_unslash( $_SERVER['CONTENT_LENGTH'] );
+                    }
+
+                    $server_key = 'HTTP_' . $normalized;
+                    if ( isset( $_SERVER[ $server_key ] ) ) {
+                        return (string) wp_unslash( $_SERVER[ $server_key ] );
+                    }
+
                     return '';
                 }
 
@@ -694,6 +759,20 @@ if ( !function_exists( 'init_coinbase_commerce_wc' ) )
                         }
                         if ( '' === $posted_key ) {
                             WC_Admin_Settings::add_error( __( 'Coinbase Business: CDP API private key is required when the gateway is enabled.', 'cgfwc' ) );
+                            return false;
+                        }
+
+                        $sandbox_on     = ! empty( $_POST[ $this->get_field_key( 'sandbox_mode' ) ] );
+                        $webhook_field  = $sandbox_on ? 'sandbox_webhook_secret' : 'webhook_secret';
+                        $webhook_secret = isset( $_POST[ $this->get_field_key( $webhook_field ) ] )
+                            ? trim( wp_unslash( $_POST[ $this->get_field_key( $webhook_field ) ] ) )
+                            : '';
+                        if ( '' === $webhook_secret ) {
+                            WC_Admin_Settings::add_error(
+                                $sandbox_on
+                                    ? __( 'Coinbase Business: Sandbox webhook secret is required when the gateway is enabled in sandbox mode.', 'cgfwc' )
+                                    : __( 'Coinbase Business: Webhook secret is required when the gateway is enabled.', 'cgfwc' )
+                            );
                             return false;
                         }
                     }
@@ -754,23 +833,21 @@ if ( !function_exists( 'om_woocommerce_requirements' ) ) {
     }
 }
 
-if ( ccfwc_is_woocommerce_active() ) {
+if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) ) ) {
     add_action( 'plugins_loaded', 'init_coinbase_commerce_wc' );
-
-    if ( ! function_exists( 'add_coinbase_to_wc' ) ) {
-        function add_coinbase_to_wc( $gateways ) {
-            $gateways[] = 'CoinbaseCommerceWC';
-            return $gateways;
-        }
-    }
-
-    add_filter( 'woocommerce_payment_gateways', 'add_coinbase_to_wc' );
 } else {
     add_action( 'admin_notices', 'om_woocommerce_requirements' );
 }
 
-require_once plugin_dir_path(__FILE__) . 'includes/webhook.php';
+if ( !function_exists( 'add_coinbase_to_wc' ) ):
+    function add_coinbase_to_wc( $gateways )
+    {
+        $gateways[] = 'CoinbaseCommerceWC';
+        return $gateways;
+    }
+endif;
 
+add_filter( 'woocommerce_payment_gateways', 'add_coinbase_to_wc' );
 
 //Notice
 add_action( 'admin_enqueue_scripts', 'ccfwc_enqueue_scripts' );

@@ -3,9 +3,9 @@ Contributors: CoderPress
 Donate link: https://coderpress.co/products/coinbase-commerce-for-woocommerce/?utm_source=ccwc&utm_medium=donate-link
 Tags: crypto, coinbase, usdc, base, stablecoin
 Requires at least: 4.9
-Tested up to: 7.1
-Stable tag: 2.1.0
-Requires PHP: 5.2.4
+Tested up to: 7.0
+Stable tag: 1.6.7
+Requires PHP: 8.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -18,7 +18,7 @@ Coinbase Business is the best gateway to accept USDC on the Base network for you
 
 https://youtu.be/xBiiT51T390
 
-1,000+ sites are using Coinbase gateways to accept payments with confidence. Version 2.1.0 is mapped to the Coinbase Business standard and requires WooCommerce to be active before the plugin can run.
+1,000+ sites are using Coinbase gateways to accept payments with confidence. Update to our 1.7.0 version perfectly mapped to the new Coinbase Business standard.
 
 How to setup Coinbase Business on WooCommerce webstore:
 
@@ -46,13 +46,10 @@ How to setup Coinbase Business on WooCommerce webstore:
 
 == Changelog ==
 
-= 2.1.0 =
-* Updated 🚀 - Updated SDK to latest version. 
-
-= 1.7.0 =
-* Major Update 🚀 – Transitioned from Coinbase Commerce to the new Coinbase Business APIs.
-* Fixed 🚀 – Plugin updated to use new CDP private key mappings and webhook authentication.
-* Notice 🚀 – WooCommerce store currency must now be set to USD and customers will pay with USDC on Base.
+= 2.0.0 =
+* Major Update 🚀 - Transitioned from Coinbase Commerce to the new Coinbase Business APIs.
+* Fixed 🚀 - Plugin updated to use new CDP private key mappings and webhook authentication.
+* Notice 🚀 - WooCommerce store currency must now be set to USD and customers will pay with USDC on Base.
 
 = 1.6.6 - Jan 28, 2025 =
 * Updated 🚀 - Updated SDK to latest version. 

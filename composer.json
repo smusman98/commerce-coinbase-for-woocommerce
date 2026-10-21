@@ -1,0 +1,15 @@
+{
+    "name": "coderpress/commerce-coinbase-for-woocommerce",
+    "description": "Coinbase Business checkout gateway for WooCommerce",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "php": ">=8.0",
+        "firebase/php-jwt": "^7.0"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true,
+        "preferred-install": "dist"
+    }
+}
